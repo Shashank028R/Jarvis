@@ -44,8 +44,24 @@ sealed class JarvisError(open val message: String) {
         override val message: String = "Item not found: $item"
     ) : JarvisError(message)
 
+    data class Configuration(
+        val reason: String,
+        override val message: String = "Configuration error: $reason"
+    ) : JarvisError(message)
+
+    data class RateLimited(
+        val retryAfterSeconds: Long? = null,
+        override val message: String = "Request rate limit exceeded"
+    ) : JarvisError(message)
+
+    data class Serialization(
+        override val message: String,
+        val rawPayload: String? = null
+    ) : JarvisError(message)
+
     data class Unknown(
         override val message: String,
         val cause: Throwable? = null
     ) : JarvisError(message)
 }
+

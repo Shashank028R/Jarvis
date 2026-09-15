@@ -2,6 +2,10 @@ package com.jarvis.app.di
 
 import com.jarvis.accessibility.AccessibilityBridge
 import com.jarvis.accessibility.DefaultAccessibilityBridge
+import com.jarvis.ai.client.AiClient
+import com.jarvis.ai.client.GeminiAiClient
+import com.jarvis.ai.transport.AiTransport
+import com.jarvis.ai.transport.DirectGeminiTransport
 import com.jarvis.androidintegration.DefaultSystemAdapter
 import com.jarvis.androidintegration.SystemAdapter
 import com.jarvis.app.BuildConfig
@@ -13,6 +17,8 @@ import com.jarvis.memory.InMemoryMemoryStore
 import com.jarvis.memory.MemoryStore
 import com.jarvis.orchestrator.DefaultJarvisOrchestrator
 import com.jarvis.orchestrator.JarvisOrchestrator
+import com.jarvis.orchestrator.session.ConversationSession
+import com.jarvis.orchestrator.session.DefaultConversationSession
 import com.jarvis.security.DefaultSecurityPolicyEngine
 import com.jarvis.security.SecurityPolicyEngine
 import com.jarvis.tools.InMemoryToolRegistry
@@ -21,7 +27,7 @@ import com.jarvis.voice.DefaultVoiceStateManager
 import com.jarvis.voice.VoiceStateManager
 
 /**
- * Dependency container providing modular, decoupled instances of all architectural subsystems for V1 Foundation.
+ * Dependency container providing modular, decoupled instances of all architectural subsystems for V2 AI Conversation.
  */
 interface AppContainer {
     val logger: JarvisLogger
@@ -32,6 +38,9 @@ interface AppContainer {
     val systemAdapter: SystemAdapter
     val accessibilityBridge: AccessibilityBridge
     val memoryStore: MemoryStore
+    val aiTransport: AiTransport
+    val aiClient: AiClient
+    val conversationSession: ConversationSession
     val orchestrator: JarvisOrchestrator
 }
 
@@ -68,6 +77,21 @@ class DefaultAppContainer : AppContainer {
         InMemoryMemoryStore()
     }
 
+    override val aiTransport: AiTransport by lazy {
+        DirectGeminiTransport(
+            apiKey = BuildConfig.GEMINI_API_KEY,
+            dispatchers = dispatchers
+        )
+    }
+
+    override val aiClient: AiClient by lazy {
+        GeminiAiClient(transport = aiTransport)
+    }
+
+    override val conversationSession: ConversationSession by lazy {
+        DefaultConversationSession()
+    }
+
     override val orchestrator: JarvisOrchestrator by lazy {
         DefaultJarvisOrchestrator(
             securityPolicyEngine = securityPolicyEngine,
@@ -75,7 +99,10 @@ class DefaultAppContainer : AppContainer {
             voiceStateManager = voiceStateManager,
             systemAdapter = systemAdapter,
             accessibilityBridge = accessibilityBridge,
-            memoryStore = memoryStore
+            memoryStore = memoryStore,
+            aiClient = aiClient,
+            session = conversationSession,
+            logger = logger
         )
     }
 }

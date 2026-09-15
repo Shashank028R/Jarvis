@@ -1,8 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+val geminiApiKey = (localProperties.getProperty("GEMINI_API_KEY")
+    ?: System.getenv("GEMINI_API_KEY")
+    ?: "").trim()
+
 
 android {
     namespace = "com.jarvis.app"
@@ -46,11 +58,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "GEMINI_API_KEY", "\"\"")
         }
         debug {
             isDebuggable = true
+            buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         }
     }
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

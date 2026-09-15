@@ -11,6 +11,7 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 mockk = "1.13.13"
 turbine = "1.2.0"
+json = "20240303"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,8 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+json = { group = "org.json", name = "json", version.ref = "json" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

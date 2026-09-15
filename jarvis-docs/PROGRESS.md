@@ -7,8 +7,8 @@ else version-specific (`19_ANTIGRAVITY_INSTRUCTIONS.md`, step 3).
 ## Current State
 
 ```yaml
-current_version: "V1"
-current_phase: "V1 Complete & Locked"
+current_version: "V2"
+current_phase: "V2 Complete & Locked"
 status: version_locked
 last_updated: 2026-09-15
 ```
@@ -18,7 +18,7 @@ last_updated: 2026-09-15
 | Version | Status | Locked Date | Notes |
 |---|---|---|---|
 | V1 Foundation | Complete | 2026-09-15 | 10 modules, dual flavors (playStore, fullAssistant), Result semantic contract tests passing |
-| V2 AI Conversation | Not started | — | — |
+| V2 AI Conversation | Complete | 2026-09-15 | Pluggable AiTransport, DirectGeminiTransport, GeminiAiClient, ConversationSession, AMOLED conversation UI |
 | V3 Voice | Not started | — | — |
 | V4 JARVIS UI | Not started | — | — |
 | V5 Wake Word | Not started | — | — |
@@ -38,17 +38,26 @@ last_updated: 2026-09-15
 - Gradle 8.11.1 wrapper with stable AGP 8.8.1, Kotlin 2.1.0, Compose BOM 2024.12.01, Coroutines 1.9.0.
 - Decoupled 10-module Gradle architecture (`:app`, `:core`, `:security`, `:ai`, `:tools`, `:voice`, `:android-integration`, `:accessibility`, `:memory`, `:orchestrator`) with structural dependency enforcement.
 - Dual build flavors configured and compiling cleanly: `playStore` (compliance-mode) and `fullAssistant` (unrestricted power-user).
-- Comprehensive `Result<T>` functional monad with domain error taxonomy (`JarvisError`).
-- Coroutine `DispatcherProvider` abstraction and lazy PII-safe `JarvisLogger`.
-- Dependency injection container (`AppContainer`) wiring all subsystems into `JarvisApplication`.
-- Initial V1 Jetpack Compose AMOLED dark UI with pure black background (`#000000`), brand red accents (`#FF1E27`), typography, DRL eye visual anchor, and subsystem readiness dashboard.
-- Android 11+ `<queries>` declared in AndroidManifest.xml.
+- Comprehensive `Result<T>` functional monad with domain error taxonomy (`JarvisError`, including `Configuration`, `RateLimited`, `Serialization`).
+- Pluggable `AiTransport` interface decoupling AI clients from network protocols, with `DirectGeminiTransport` for development and `RelayGeminiTransport` stub for V15 serverless proxy.
+- `BuildConfig.GEMINI_API_KEY` injected from git-ignored `local.properties` in debug builds and stripped from release builds (zero hardcoded secrets).
+- `AiClient` interface and `GeminiAiClient` implementation with multi-turn JSON payload serialization, safety checks, and response parsing.
+- Calibrated system prompt and tone guidelines in `JarvisPersonality` per `03_USER_EXPERIENCE.md`.
+- `ConversationSession` in `:orchestrator` enforcing bounded FIFO turn window (10 turns).
+- `DefaultJarvisOrchestrator` coordinating user intents, session state, and `AiClient` reasoning loop.
+- `JarvisViewModel` managing UI state, send/retry logic, and error containment.
+- Extended Compose AMOLED UI with text input bar, multi-turn conversation bubble stream, processing indicator, error banner with retry, and expandable subsystem health status.
 
 ## Tests Passed
 
-- `:core:test`: `ResultTest` (complete semantic contract testing: `success`, `failure`, `map`, `flatMap`, `fold`, `recovery`, `recoverWith`, `error propagation`, `runCatching`).
-- `:app:test`: `FlavorConfigurationTest` across both `playStore` and `fullAssistant` variants in debug and release.
-- Build verification: `assemblePlayStoreDebug` and `assembleFullAssistantDebug` producing both APK artifacts.
+- `:core:test`: `ResultTest` covering monadic operators, recovery, and error propagation.
+- `:ai:test`: `DirectGeminiTransportTest` (missing key, 200 OK, 429 rate limit, 400 sanitization, 503 transient, timeout, IO error, cancellation) and `GeminiAiClientTest` (converse, multi-turn serialization, empty candidates, error JSON, adapt to AiProvider).
+- `:orchestrator:test`: `ConversationSessionTest` (turn preservation, window bounding, clear) and `DefaultJarvisOrchestratorTest` (initialization, blank input validation, missing client handling, conversational round trip, error state transition, reset).
+- `:app:test`: `JarvisViewModelTest` (initial state, input updates, message send, error handling, retry, clear) and `FlavorConfigurationTest` across both `playStore` and `fullAssistant` variants.
+- Multi-Module Test (`./gradlew test`): 403 actionable tasks passing 100%.
+- Build verification: `assemblePlayStoreDebug` and `assembleFullAssistantDebug` producing verified APKs.
+- Physical device verification: Installed and launched on OnePlus CPH2423 (Android 14) with zero crashes or exceptions.
+
 
 ## Known Bugs
 
