@@ -201,9 +201,52 @@ In accordance with [13_SECURITY.md](file:///c:/Users/shash/OneDrive/Desktop/Jarv
 
 ---
 
+## Post-V2 Physical UI Polish
+
+Following physical-device validation on a 1080x2412 AMOLED device (OnePlus CPH2423, Android 14), a focused UI/UX correction pass was conducted.
+
+### 1. Issues Discovered
+1. **System Status Bar Collision:** `SYSTEM // ONLINE` header and flavor badges collided with system status-bar icons (clock, call indicator, battery, signal icons).
+2. **Flavor Badge Positioning:** Badge was positioned too high, overlapping system notifications and hardware display bounds.
+3. **Abrupt Subsystem Expansion:** Subsystem Health expanded and collapsed abruptly with instant height changes.
+4. **"Empty Box" Layout Artifact:** When Subsystem Health expanded, a small empty rounded-rectangle element appeared between the suggestions and the health panel.
+5. **Layout Responsiveness Under Constraint:** Suggestion chips were subject to clipping without scrolling when vertical space was reduced.
+
+### 2. Root Causes
+1. **Missing Safe Area Insets:** The root container lacked `statusBarsPadding()` and `navigationBarsPadding()`, placing $Y=0$ content directly under the OS status-bar safe region while in edge-to-edge mode.
+2. **Fixed Padding on TopStatusBar:** Top header lacked safe area breathing room and vertical alignment.
+3. **Absence of Content Size Animation:** Subsystem section used simple fade without height tweening or rotating indicator.
+4. **Non-Scrollable Centered Column Overflow:** `EmptyConversationState` used a non-scrollable centered `Column` with generous spacers. When Subsystem Health expanded, available height was reduced, causing the second suggestion chip ("Explain quantum computing concisely") to be clipped horizontally through its top border—appearing as an empty pill/box with the text pushed off-screen.
+
+### 3. Fixes Applied
+1. **Window Insets Applied:** Added `statusBarsPadding()`, `navigationBarsPadding()`, and `imePadding()` to the inner content column in `JarvisFoundationScreen.kt`, while keeping the outer container `fillMaxSize().background(JarvisBlack)` to maintain AMOLED-black edge-to-edge bleed.
+2. **Responsive TopStatusBar & Badging:** Aligned `SYSTEM // ONLINE` and both flavor badges (`PLAY STORE`, `FULL ASSISTANT`) cleanly below the system status bar with balanced padding.
+3. **Fluid Subsystem Health Animation:**
+   - Applied `Modifier.animateContentSize(tween(300, easing = FastOutSlowInEasing))` on the card.
+   - Animated chevron rotation from 0° to 180° via `animateFloatAsState` and `Modifier.rotate`.
+   - Used matching `expandVertically(tween(300)) + fadeIn(tween(250, 50))` and `shrinkVertically(tween(300)) + fadeOut(tween(200))`.
+   - Constrained expanded list to `heightIn(max = 220.dp).verticalScroll(rememberScrollState())` to preserve layout balance.
+4. **Empty Box Elimination & Adaptive Layout:** Made `EmptyConversationState` scrollable with `verticalScroll(rememberScrollState())` and refined vertical spacers. When Subsystem Health expands, all 3 suggestions remain completely visible and accessible, with zero clipping or phantom empty boxes.
+5. **IME Insets:** Verified text input cleanly lifts above the soft keyboard with focused cursor and border states.
+
+### 4. Tests
+- `./gradlew test`: All 403 test tasks passed (100% pass rate).
+- `./gradlew assemblePlayStoreDebug assembleFullAssistantDebug`: Both APKs built successfully.
+
+### 5. Physical-Device Verification
+- Verified on OnePlus CPH2423 (1080x2412, Android 14) for both `com.jarvis.app.play` and `com.jarvis.app.full`.
+- Status-bar clearance: Verified zero overlap with system icons.
+- Flavor badges: Aligned and legible for both flavors.
+- Expand/collapse animation: Verified smooth 300ms transition with rotating chevron.
+- Empty box: Verified completely eliminated in both collapsed and expanded states.
+- Conversation & keyboard: Verified message sending, error banner, retry action, conversation clear action, and soft keyboard appearance/dismissal.
+
+---
+
 ## 9. Final Sign-off Recommendation
 
 The V2 AI Conversation phase has satisfied all architectural specifications, constitution rules, security boundaries, and unit/integration/physical-device verifications.
 
 - **V2 Status:** **COMPLETE & LOCKED**
 - **Next Version:** Ready for **V3 Voice** upon user authorization.
+
