@@ -23,7 +23,10 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: JarvisViewModel by viewModels {
         val container = (application as JarvisApplication).container
-        JarvisViewModel.provideFactory(container.orchestrator)
+        JarvisViewModel.provideFactory(
+            orchestrator = container.orchestrator,
+            voiceController = container.voiceInteractionController
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +50,11 @@ class MainActivity : ComponentActivity() {
                         onInputChanged = viewModel::onInputChanged,
                         onSendMessage = viewModel::sendMessage,
                         onRetry = viewModel::retryLast,
-                        onClearConversation = viewModel::clearConversation
+                        onClearConversation = viewModel::clearConversation,
+                        onMicTapped = viewModel::onMicTapped,
+                        onInterruptVoice = viewModel::interruptVoice,
+                        onCancelVoice = viewModel::cancelVoice,
+                        onClearVoiceError = viewModel::clearVoiceError
                     )
                 }
             }

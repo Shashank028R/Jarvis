@@ -25,6 +25,15 @@ import com.jarvis.tools.InMemoryToolRegistry
 import com.jarvis.tools.ToolRegistry
 import com.jarvis.voice.DefaultVoiceStateManager
 import com.jarvis.voice.VoiceStateManager
+import com.jarvis.voice.aec.AecManager
+import com.jarvis.voice.aec.DefaultAecManager
+import com.jarvis.voice.controller.VoiceInteractionController
+import com.jarvis.voice.stt.AndroidSpeechToTextEngine
+import com.jarvis.voice.stt.SpeechToTextEngine
+import com.jarvis.voice.tts.AndroidTextToSpeechEngine
+import com.jarvis.voice.tts.TextToSpeechEngine
+import com.jarvis.voice.vad.EnergyVadEngine
+import com.jarvis.voice.vad.VadEngine
 
 /**
  * Dependency container providing modular, decoupled instances of all architectural subsystems for V2 AI Conversation.
@@ -42,9 +51,14 @@ interface AppContainer {
     val aiClient: AiClient
     val conversationSession: ConversationSession
     val orchestrator: JarvisOrchestrator
+    val aecManager: AecManager
+    val vadEngine: VadEngine
+    val sttEngine: SpeechToTextEngine
+    val ttsEngine: TextToSpeechEngine
+    val voiceInteractionController: VoiceInteractionController
 }
 
-class DefaultAppContainer : AppContainer {
+class DefaultAppContainer(private val context: android.content.Context) : AppContainer {
     override val logger: JarvisLogger by lazy {
         AndroidJarvisLogger(isDebug = BuildConfig.DEBUG)
     }
@@ -102,6 +116,45 @@ class DefaultAppContainer : AppContainer {
             memoryStore = memoryStore,
             aiClient = aiClient,
             session = conversationSession,
+            logger = logger
+        )
+    }
+
+    override val aecManager: AecManager by lazy {
+        DefaultAecManager(logger = logger)
+    }
+
+    override val vadEngine: VadEngine by lazy {
+        EnergyVadEngine()
+    }
+
+    override val sttEngine: SpeechToTextEngine by lazy {
+        AndroidSpeechToTextEngine(
+            context = context,
+            logger = logger
+        )
+    }
+
+    override val ttsEngine: TextToSpeechEngine by lazy {
+        AndroidTextToSpeechEngine(
+            context = context,
+            logger = logger
+        ).apply {
+            initialize()
+        }
+    }
+
+    override val voiceInteractionController: VoiceInteractionController by lazy {
+        VoiceInteractionController(
+            voiceStateManager = voiceStateManager,
+            sttEngine = sttEngine,
+            ttsEngine = ttsEngine,
+            aecManager = aecManager,
+            vadEngine = vadEngine,
+            intentDispatcher = { intentText -> orchestrator.handleUserIntent(intentText) },
+            coroutineScope = kotlinx.coroutines.CoroutineScope(
+                kotlinx.coroutines.SupervisorJob() + dispatchers.main
+            ),
             logger = logger
         )
     }

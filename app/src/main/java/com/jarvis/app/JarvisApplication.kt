@@ -17,7 +17,7 @@ class JarvisApplication : Application() {
         super.onCreate()
         instance = this
 
-        container = DefaultAppContainer()
+        container = DefaultAppContainer(this)
         container.logger.i(TAG) {
             "JARVIS Application starting. Flavor: ${BuildConfig.FLAVOR_NAME}, FullAssistant: ${BuildConfig.IS_FULL_ASSISTANT}, Version: ${BuildConfig.VERSION_NAME}"
         }

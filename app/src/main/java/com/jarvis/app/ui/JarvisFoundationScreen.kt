@@ -38,12 +38,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Warning
+import com.jarvis.voice.VoiceState
 
 
 import androidx.compose.material3.CircularProgressIndicator
@@ -117,11 +129,37 @@ fun JarvisFoundationScreen(
     onSendMessage: () -> Unit,
     onRetry: () -> Unit,
     onClearConversation: () -> Unit,
+    onMicTapped: () -> Unit = {},
+    onInterruptVoice: () -> Unit = {},
+    onCancelVoice: () -> Unit = {},
+    onClearVoiceError: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
     var subsystemsExpanded by remember { mutableStateOf(false) }
+    var permissionDeniedNotice by remember { mutableStateOf(false) }
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            permissionDeniedNotice = false
+            onMicTapped()
+        } else {
+            permissionDeniedNotice = true
+        }
+    }
+
+    val handleMicClick = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            permissionDeniedNotice = false
+            onMicTapped()
+        } else {
+            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
 
     // Auto-scroll to bottom when new turns arrive
     LaunchedEffect(uiState.turns.size, uiState.isProcessing) {
@@ -196,9 +234,23 @@ fun JarvisFoundationScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // 4. Expandable Subsystem Architecture Health Status
+            // 4. Voice Interaction HUD / Feedback Banner
+            VoiceInteractionHud(
+                voiceState = uiState.voiceState,
+                partialTranscript = uiState.partialTranscript,
+                voiceError = uiState.voiceError,
+                permissionDenied = permissionDeniedNotice,
+                onDismissPermission = { permissionDeniedNotice = false },
+                onDismissError = onClearVoiceError,
+                onInterruptVoice = onInterruptVoice,
+                onCancelVoice = onCancelVoice
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 5. Expandable Subsystem Architecture Health Status
             SubsystemsExpandableSection(
                 expanded = subsystemsExpanded,
                 onToggle = { subsystemsExpanded = !subsystemsExpanded }
@@ -206,15 +258,18 @@ fun JarvisFoundationScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 5. Text Input & Send Bar
+            // 6. Text & Voice Input Bar
             ConversationInputBar(
                 inputText = uiState.inputText,
                 isProcessing = uiState.isProcessing,
+                voiceState = uiState.voiceState,
                 onInputChanged = onInputChanged,
                 onSend = {
                     keyboardController?.hide()
                     onSendMessage()
-                }
+                },
+                onMicClick = handleMicClick,
+                onInterruptVoice = onInterruptVoice
             )
         }
     }
@@ -738,11 +793,259 @@ private fun SubsystemsExpandableSection(
 }
 
 @Composable
+private fun VoiceInteractionHud(
+    voiceState: VoiceState,
+    partialTranscript: String,
+    voiceError: String?,
+    permissionDenied: Boolean,
+    onDismissPermission: () -> Unit,
+    onDismissError: () -> Unit,
+    onInterruptVoice: () -> Unit,
+    onCancelVoice: () -> Unit
+) {
+    if (permissionDenied) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, JarvisRedPrimary, RoundedCornerShape(8.dp))
+                .background(JarvisRedDark.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MicOff,
+                        contentDescription = null,
+                        tint = JarvisRedBright,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Microphone permission required for voice. Text conversation remains active.",
+                        color = JarvisTextPrimary,
+                        fontSize = 11.sp
+                    )
+                }
+                IconButton(
+                    onClick = onDismissPermission,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss notice",
+                        tint = JarvisTextMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    } else if (voiceError != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, JarvisRedPrimary, RoundedCornerShape(8.dp))
+                .background(JarvisRedDark.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = JarvisRedBright,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = voiceError,
+                        color = JarvisRedBright,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+                IconButton(
+                    onClick = onDismissError,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss error",
+                        tint = JarvisTextMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    } else if (voiceState == VoiceState.LISTENING) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, JarvisRedBright, RoundedCornerShape(8.dp))
+                .background(JarvisSurfaceDark, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(JarvisRedBright, CircleShape)
+                    )
+                    Column {
+                        Text(
+                            text = "VOICE INPUT ACTIVE — LISTENING...",
+                            color = JarvisRedBright,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = if (partialTranscript.isNotBlank()) "\"$partialTranscript\"" else "Speak naturally to JARVIS",
+                            color = if (partialTranscript.isNotBlank()) JarvisTextPrimary else JarvisTextMuted,
+                            fontSize = 12.sp,
+                            fontFamily = if (partialTranscript.isNotBlank()) FontFamily.SansSerif else FontFamily.Monospace
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onCancelVoice,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cancel listening",
+                        tint = JarvisTextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    } else if (voiceState == VoiceState.SPEAKING) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, JarvisRedPrimary, RoundedCornerShape(8.dp))
+                .background(JarvisSurfaceDark, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                        contentDescription = null,
+                        tint = JarvisRedBright,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "JARVIS SPEAKING — BARGE-IN ACTIVE",
+                            color = JarvisRedBright,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = "Tap stop or speak to interrupt",
+                            color = JarvisTextMuted,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, JarvisRedPrimary, RoundedCornerShape(4.dp))
+                        .background(JarvisRedDark.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        .clickable { onInterruptVoice() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Stop,
+                            contentDescription = "Interrupt speech",
+                            tint = JarvisRedBright,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "STOP",
+                            color = JarvisRedBright,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+            }
+        }
+    } else if (voiceState == VoiceState.THINKING) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, JarvisSurfaceBorder, RoundedCornerShape(8.dp))
+                .background(JarvisSurfaceDark, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                    color = JarvisRedBright
+                )
+                Text(
+                    text = "PROCESSING SPEECH WITH AI...",
+                    color = JarvisTextSecondary,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ConversationInputBar(
     inputText: String,
     isProcessing: Boolean,
+    voiceState: VoiceState,
     onInputChanged: (String) -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onMicClick: () -> Unit,
+    onInterruptVoice: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -755,7 +1058,7 @@ private fun ConversationInputBar(
             modifier = Modifier.weight(1f),
             placeholder = {
                 Text(
-                    text = "Ask JARVIS...",
+                    text = if (voiceState == VoiceState.LISTENING) "Listening..." else "Ask JARVIS or tap Mic...",
                     color = JarvisTextMuted,
                     fontSize = 14.sp
                 )
@@ -776,28 +1079,96 @@ private fun ConversationInputBar(
         )
 
         val canSend = inputText.isNotBlank() && !isProcessing
-        IconButton(
-            onClick = onSend,
-            enabled = canSend,
-            modifier = Modifier
-                .size(44.dp)
-                .background(
-                    color = if (canSend) JarvisRedPrimary else JarvisSurfaceDark,
-                    shape = CircleShape
+        if (inputText.isNotBlank()) {
+            IconButton(
+                onClick = onSend,
+                enabled = canSend,
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        color = if (canSend) JarvisRedPrimary else JarvisSurfaceDark,
+                        shape = CircleShape
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (canSend) JarvisRedBright else JarvisSurfaceBorder,
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send message",
+                    tint = if (canSend) Color.White else JarvisTextMuted,
+                    modifier = Modifier.size(18.dp)
                 )
-                .border(
-                    width = 1.dp,
-                    color = if (canSend) JarvisRedBright else JarvisSurfaceBorder,
-                    shape = CircleShape
-                )
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Send message",
-                tint = if (canSend) Color.White else JarvisTextMuted,
-                modifier = Modifier.size(18.dp)
-            )
+            }
+        }
 
+        // Voice Interaction Action Button
+        when (voiceState) {
+            VoiceState.SPEAKING -> {
+                IconButton(
+                    onClick = onInterruptVoice,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(color = JarvisRedPrimary, shape = CircleShape)
+                        .border(width = 1.dp, color = JarvisRedBright, shape = CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Stop,
+                        contentDescription = "Interrupt speech",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            VoiceState.LISTENING -> {
+                IconButton(
+                    onClick = onMicClick,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(color = JarvisRedDark, shape = CircleShape)
+                        .border(width = 1.5.dp, color = JarvisRedBright, shape = CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Stop listening",
+                        tint = JarvisRedBright,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            VoiceState.THINKING -> {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(color = JarvisSurfaceDark, shape = CircleShape)
+                        .border(width = 1.dp, color = JarvisSurfaceBorder, shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = JarvisRedBright
+                    )
+                }
+            }
+            else -> {
+                IconButton(
+                    onClick = onMicClick,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(color = JarvisSurfaceDark, shape = CircleShape)
+                        .border(width = 1.dp, color = JarvisSurfaceBorder, shape = CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Start voice input",
+                        tint = JarvisTextPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
     }
 }
