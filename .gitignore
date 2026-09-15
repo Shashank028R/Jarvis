@@ -1,0 +1,17 @@
+/.idea/
+.idea/
+*.iml
+.gradle
+/local.properties
+.DS_Store
+/build
+*/build
+.cxx
+*.apk
+*.aab
+*.keystore
+*.jks
+credentials.json
+google-services.json
+device_screenshot.png
+

@@ -1,0 +1,1 @@
+# Memory consumer proguard rules

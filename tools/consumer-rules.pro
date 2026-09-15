@@ -1,0 +1,1 @@
+# Tools consumer proguard rules

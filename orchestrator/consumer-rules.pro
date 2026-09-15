@@ -1,0 +1,1 @@
+# Orchestrator consumer proguard rules

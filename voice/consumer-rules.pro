@@ -1,0 +1,1 @@
+# Voice consumer proguard rules

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Jarvis" parent="android:Theme.Material.NoActionBar">
+        <!-- Pure AMOLED Black Background eliminating any system gray bars -->
+        <item name="android:windowBackground">@color/jarvis_black</item>
+        <item name="android:colorBackground">@color/jarvis_black</item>
+        
+        <!-- Fully Transparent System Bars for True Edge-to-Edge -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        
+        <!-- Ensure zero window splash gray flash -->
+        <item name="android:windowDisablePreview">false</item>
+    </style>
+</resources>
