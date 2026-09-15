@@ -26,12 +26,34 @@ import org.json.JSONObject
  */
 class GeminiAiClient(
     private val transport: AiTransport,
-    val model: String = DEFAULT_MODEL
+    val model: String = DEFAULT_MODEL,
+    val deepThinkModel: String = DEEP_THINK_MODEL,
+    val fallbackModel: String = FALLBACK_MODEL
 ) : AiClient, AiProvider {
 
     companion object {
-        const val DEFAULT_MODEL = "gemini-1.5-flash"
+        const val DEFAULT_MODEL = "gemini-3.6-flash"
+        const val FALLBACK_MODEL = "gemini-3.5-flash"
+        const val DEEP_THINK_MODEL = "gemini-3.6-flash"
         private const val API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+        /**
+         * Checks if the user explicitly requested deep thinking, high reasoning, or maximum accuracy.
+         */
+        fun isDeepThinkingRequested(text: String): Boolean {
+            val lower = text.lowercase()
+            return lower.contains("deep think") ||
+                   lower.contains("deepthink") ||
+                   lower.contains("think deeply") ||
+                   lower.contains("deep reasoning") ||
+                   lower.contains("reason deeply") ||
+                   lower.contains("accurately") ||
+                   lower.contains("accurate answer") ||
+                   lower.contains("answer accurately") ||
+                   lower.contains("give me the answer accurately") ||
+                   lower.contains("higher model") ||
+                   lower.contains("high model")
+        }
     }
 
     override val providerName: String = "Gemini ($model)"
@@ -40,20 +62,36 @@ class GeminiAiClient(
         input: ConversationTurn,
         context: PlannerContext
     ): Result<TextResponse> {
-        val payloadResult = buildGenerateContentPayload(input, context)
+        val isDeepThink = isDeepThinkingRequested(input.text)
+        val activeModel = if (isDeepThink) deepThinkModel else model
+        val payloadResult = buildGenerateContentPayload(input, context, isDeepThink)
         val payloadJson = payloadResult.fold(
             onSuccess = { it },
             onFailure = { return Result.failure(it) }
         )
 
-        val endpoint = "$API_BASE/$model:generateContent"
+        val endpoint = "$API_BASE/$activeModel:generateContent"
         val request = TransportRequest(
             endpointUrl = endpoint,
             bodyJson = payloadJson
         )
 
-        val transportResult = transport.execute(request)
-        return transportResult.flatMap { response ->
+        val primaryResult = transport.execute(request)
+        val responseToParse = if (primaryResult.isFailure) {
+            val error = primaryResult.errorOrNull()
+            val isTransient = (error is JarvisError.Network && error.isTransient) ||
+                             (error is JarvisError.RateLimited)
+            if (isTransient && activeModel != fallbackModel) {
+                val fallbackEndpoint = "$API_BASE/$fallbackModel:generateContent"
+                transport.execute(request.copy(endpointUrl = fallbackEndpoint))
+            } else {
+                primaryResult
+            }
+        } else {
+            primaryResult
+        }
+
+        return responseToParse.flatMap { response ->
             parseGeminiResponse(response.bodyJson)
         }
     }
@@ -104,7 +142,8 @@ class GeminiAiClient(
 
     private fun buildGenerateContentPayload(
         currentInput: ConversationTurn,
-        context: PlannerContext
+        context: PlannerContext,
+        isDeepThink: Boolean = false
     ): Result<String> {
         return try {
             val root = JSONObject()
@@ -149,8 +188,23 @@ class GeminiAiClient(
 
             // 3. Generation Config
             val genConfig = JSONObject().apply {
-                put("temperature", 0.7)
-                put("maxOutputTokens", 1024)
+                if (isDeepThink) {
+                    // Deep Thinking mode: Lower temperature for precision and enable thinking budget
+                    put("temperature", 0.4)
+                    put("maxOutputTokens", 2048)
+                    val thinkingConfig = JSONObject().apply {
+                        put("thinkingBudget", 2048)
+                    }
+                    put("thinkingConfig", thinkingConfig)
+                } else {
+                    // Standard fast mode: default temperature and zero thinking budget for instantaneous response
+                    put("temperature", 0.7)
+                    put("maxOutputTokens", 1024)
+                    val thinkingConfig = JSONObject().apply {
+                        put("thinkingBudget", 0)
+                    }
+                    put("thinkingConfig", thinkingConfig)
+                }
             }
             root.put("generationConfig", genConfig)
 

@@ -208,4 +208,52 @@ class GeminiAiClientTest {
         assertTrue(result.isSuccess)
         assertEquals("At your service.", result.getOrThrow().content)
     }
+
+    @Test
+    fun `isDeepThinkingRequested identifies trigger phrases correctly`() {
+        assertTrue(GeminiAiClient.isDeepThinkingRequested("Please use deep think for this"))
+        assertTrue(GeminiAiClient.isDeepThinkingRequested("Think deeply about this problem"))
+        assertTrue(GeminiAiClient.isDeepThinkingRequested("Give me the answer accurately"))
+        assertTrue(GeminiAiClient.isDeepThinkingRequested("Answer accurately please"))
+        assertTrue(GeminiAiClient.isDeepThinkingRequested("Explain accurately with deep reasoning"))
+        assertTrue(GeminiAiClient.isDeepThinkingRequested("Switch to a higher model"))
+
+        org.junit.Assert.assertFalse(GeminiAiClient.isDeepThinkingRequested("Hello Jarvis"))
+        org.junit.Assert.assertFalse(GeminiAiClient.isDeepThinkingRequested("What time is it?"))
+    }
+
+    @Test
+    fun `converse sets thinkingConfig budget and lower temperature when deep thinking requested`() = runTest {
+        val capturedRequest = slot<TransportRequest>()
+        val dummyResponse = """
+            {
+              "candidates": [
+                {
+                  "content": {
+                    "parts": [{ "text": "Deep thinking analysis complete, Sir." }],
+                    "role": "model"
+                  }
+                }
+              ]
+            }
+        """.trimIndent()
+
+        coEvery { mockTransport.execute(capture(capturedRequest)) } returns Result.success(
+            TransportResponse(statusCode = 200, bodyJson = dummyResponse)
+        )
+
+        val input = ConversationTurn(role = TurnRole.USER, text = "Deep think: what is the meaning of life?")
+        val result = client.converse(input, PlannerContext())
+
+        assertTrue(result.isSuccess)
+        assertEquals("Deep thinking analysis complete, Sir.", result.getOrThrow().text)
+
+        val payload = JSONObject(capturedRequest.captured.bodyJson)
+        val genConfig = payload.getJSONObject("generationConfig")
+        assertEquals(0.4, genConfig.getDouble("temperature"), 0.001)
+        assertEquals(2048, genConfig.getInt("maxOutputTokens"))
+
+        val thinkingConfig = genConfig.getJSONObject("thinkingConfig")
+        assertEquals(2048, thinkingConfig.getInt("thinkingBudget"))
+    }
 }
