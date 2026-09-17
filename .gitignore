@@ -1,19 +1,53 @@
-/.idea/
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/DALVIK Virtual Machine
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+.gradle/
+app/build/
+
+# Android Studio / IntelliJ IDEA
 .idea/
 *.iml
-.gradle
-/local.properties
+*.iws
+*.ipr
+.navigation/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log files
+*.log
+
+# Android profiling
+*.hprof
+
+# OS specific files
 .DS_Store
-/build
-*/build
-.cxx
-*.apk
-*.aab
-*.keystore
-*.jks
-credentials.json
-google-services.json
-device_screenshot.png
-v2_device_screenshot.png
+Thumbs.db
 
+# Keep release APK and version.json in root if explicitly tracked
+!Jarvis-Ai-New.apk
 
+# Secrets and local credentials (keep local, template in env.properties.example)
+app/src/main/assets/env.properties
+
+# Private Local Admin Panel (Do not push to GitHub)
+admin-panel/
+
+# Scratch and extracted archives (Do not push to GitHub)
+scratch/
+*.zip
+mcp_config.json

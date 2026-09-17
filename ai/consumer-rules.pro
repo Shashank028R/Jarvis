@@ -1,1 +1,0 @@
-# AI consumer proguard rules
