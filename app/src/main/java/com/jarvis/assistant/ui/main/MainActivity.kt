@@ -882,8 +882,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyHomeScreenStyle() {
         val style = prefs().getString("home_screen_style", "classic") ?: "classic"
-        currentHomeScreenStyle = style
-        if (style == "cyber_hud") {
+        val isRed = ThemeManager.isRedTheme(this)
+        currentHomeScreenStyle = if (isRed) "classic" else style
+        if (currentHomeScreenStyle == "cyber_hud") {
             classicHomeLayout.visibility = View.GONE
             cyberHudWebView.visibility = View.VISIBLE
             if (cyberHudLoaded) {
