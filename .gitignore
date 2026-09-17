@@ -39,7 +39,7 @@ local.properties
 Thumbs.db
 
 # Keep release APK and version.json in root if explicitly tracked
-!Jarvis-Ai-New.apk
+# Note: APKs must NOT be tracked in git to prevent bundling secret assets into GitHub history
 
 # Secrets and local credentials (keep local, template in env.properties.example)
 app/src/main/assets/env.properties
