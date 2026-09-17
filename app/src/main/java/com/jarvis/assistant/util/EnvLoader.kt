@@ -16,10 +16,48 @@ object EnvLoader {
         cachedYoutubeKey = null
     }
 
+    fun saveApiKey(context: Context, key: String) {
+        val trimmed = key.trim()
+        cachedApiKey = trimmed
+        try {
+            context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString("api_key", trimmed)
+                .putString("cached_api_key", trimmed)
+                .apply()
+        } catch (e: Exception) {
+            android.util.Log.e("EnvLoader", "Failed to save api key to preferences", e)
+        }
+    }
+
     fun getApiKey(context: Context): String {
         cachedApiKey?.takeIf { it.isNotBlank() }?.let { return it }
 
-        // 1. Check local env.properties first (direct developer/user key)
+        // 1. Check user-saved SharedPreferences key FIRST (Highest priority)
+        val prefsKey = try {
+            context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
+                .getString("api_key", "")?.trim() ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+        if (prefsKey.isNotEmpty()) {
+            cachedApiKey = prefsKey
+            return prefsKey
+        }
+
+        // 2. Check cached_api_key fallback in SharedPreferences
+        val cachedPrefsKey = try {
+            context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
+                .getString("cached_api_key", "")?.trim() ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+        if (cachedPrefsKey.isNotEmpty()) {
+            cachedApiKey = cachedPrefsKey
+            return cachedPrefsKey
+        }
+
+        // 3. Fallback to local env.properties only if no saved key exists
         val envKey = try {
             val properties = Properties()
             properties.load(context.assets.open("env.properties"))
@@ -31,19 +69,7 @@ object EnvLoader {
 
         if (envKey.isNotEmpty()) {
             cachedApiKey = envKey
-            try {
-                context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit().putString("api_key", envKey).apply()
-            } catch (e: Exception) {}
             return envKey
-        }
-
-        // 2. Fallback to user-saved SharedPreferences key
-        val prefsKey = context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
-            .getString("api_key", "")?.trim() ?: ""
-        if (prefsKey.isNotEmpty()) {
-            cachedApiKey = prefsKey
-            return prefsKey
         }
 
         return ""

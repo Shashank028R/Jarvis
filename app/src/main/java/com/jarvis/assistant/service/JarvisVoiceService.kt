@@ -196,6 +196,27 @@ class JarvisVoiceService : Service() {
         }
     }
 
+    fun updateApiKey(newApiKey: String) {
+        val trimmed = newApiKey.trim()
+        if (trimmed.isBlank()) return
+        val changed = cachedApiKey != trimmed
+        cachedApiKey = trimmed
+        try {
+            getSharedPreferences("jarvis_prefs", Context.MODE_PRIVATE).edit()
+                .putString("api_key", trimmed)
+                .putString("cached_api_key", trimmed)
+                .apply()
+        } catch (_: Exception) {}
+        if (changed) {
+            Log.i("JarvisVoiceService", "API key dynamically updated — clearing session and reconnecting")
+            geminiLive?.clearSessionHandle()
+            geminiLive?.disconnect()
+            if (isSessionStarted && !isInBackgroundStandby()) {
+                restartSession(trimmed, cachedModelString, cachedSystemPrompt, cachedVoiceName)
+            }
+        }
+    }
+
     private var geminiLive: GeminiLiveClient? = null
     private var audioEngine: AudioEngine? = null
     private var screenCaptureEngine: com.jarvis.assistant.vision.ScreenCaptureEngine? = null
@@ -758,12 +779,10 @@ class JarvisVoiceService : Service() {
 
     fun ensureSessionActive() {
         if (isSessionStarted && geminiLive?.isConnected() == true) return
-        val prefs = getSharedPreferences("jarvis_prefs", Context.MODE_PRIVATE)
-        val apiKey = cachedApiKey.ifBlank {
-            prefs.getString("cached_api_key", "") ?: ""
-        }.ifBlank {
-            com.jarvis.assistant.util.EnvLoader.getApiKey(this)
+        val apiKey = com.jarvis.assistant.util.EnvLoader.getApiKey(this).ifBlank {
+            cachedApiKey
         }
+        val prefs = getSharedPreferences("jarvis_prefs", Context.MODE_PRIVATE)
         val model = cachedModelString.ifBlank {
             prefs.getString("cached_model", "models/gemini-3.1-flash-live-preview") ?: "models/gemini-3.1-flash-live-preview"
         }

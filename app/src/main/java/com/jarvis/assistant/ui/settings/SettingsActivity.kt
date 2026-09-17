@@ -458,10 +458,8 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun updateApiKeyFieldUI() {
         geminiKeyContainer.visibility = View.VISIBLE
-        val p = prefs()
-        val savedGemini = p.getString("api_key", "") ?: ""
-        val defaultGemini = EnvLoader.getApiKey(this)
-        apiKeyInput.setText(if (savedGemini.isNotBlank()) savedGemini else defaultGemini)
+        val currentKey = EnvLoader.getApiKey(this)
+        apiKeyInput.setText(currentKey)
     }
 
     private fun saveAndClose() {
@@ -482,8 +480,11 @@ class SettingsActivity : AppCompatActivity() {
         val previousTheme = ThemeManager.getTheme(this)
 
         val selectedVoice = voiceValues.getOrNull(selectedVoiceIndex) ?: "Puck"
+        val newApiKey = apiKeyInput.text.toString().trim()
+
         prefs().edit().apply {
-            putString("api_key", apiKeyInput.text.toString().trim())
+            putString("api_key", newApiKey)
+            putString("cached_api_key", newApiKey)
             putString("user_name", newUserName)
             putString("tts_engine", "gemini")
             putString("gemini_model", geminiModelValues.getOrNull(selectedModelIndex) ?: defaultGeminiModel)
@@ -495,12 +496,14 @@ class SettingsActivity : AppCompatActivity() {
             apply()
         }
 
+        EnvLoader.saveApiKey(this, newApiKey)
+
         try {
+            com.jarvis.assistant.service.JarvisVoiceService.instance?.updateApiKey(newApiKey)
             com.jarvis.assistant.service.JarvisVoiceService.instance?.updateVoice(selectedVoice)
         } catch (_: Exception) {}
 
         syncUserDataToFirebase(newUserName)
-        EnvLoader.resetCache()
         Toast.makeText(this, "Configuration saved successfully", Toast.LENGTH_SHORT).show()
         finish()
     }

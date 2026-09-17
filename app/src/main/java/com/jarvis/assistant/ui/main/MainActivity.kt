@@ -690,6 +690,17 @@ class MainActivity : AppCompatActivity() {
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
         blazeRedWebView.webChromeClient = android.webkit.WebChromeClient()
+        blazeRedWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                val latestHistory = com.jarvis.assistant.util.ChatHistoryManager.loadHistory(this@MainActivity)
+                val lastJarvisMsg = latestHistory.lastOrNull { !it.isUser }?.text
+                if (!lastJarvisMsg.isNullOrBlank()) {
+                    val quoted = org.json.JSONObject.quote(lastJarvisMsg)
+                    blazeRedWebView.evaluateJavascript("if (window.setLatestResponse) window.setLatestResponse($quoted);", null)
+                }
+            }
+        }
         blazeRedWebView.setBackgroundColor(Color.TRANSPARENT)
         blazeRedWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         blazeRedWebView.addJavascriptInterface(OrbBridge(), "AndroidInterface")

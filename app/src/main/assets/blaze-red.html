@@ -161,25 +161,65 @@
     opacity: 0.85;
   }
 
-  /* SLEEK CENTER HEARTBEAT WAVEFORM (Shifted lower, zero container/borders) */
+  /* SLEEK AUDIO FREQUENCY FILAMENT WAVEFORM & LASER HORIZON */
   .wave-container {
     position: relative;
-    width: 280px;
-    height: 54px;
+    width: 100%;
+    max-width: 360px;
+    height: 76px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1;
-    margin-top: 48px; /* shifted lower towards bottom */
+    margin-top: 20px;
+    margin-bottom: 6px;
     background: transparent !important;
     border: none !important;
   }
 
   #waveformCanvas {
-    width: 280px;
-    height: 54px;
+    width: 360px;
+    height: 76px;
     display: block;
     background: transparent !important;
+  }
+
+  /* LATEST RESPONSE SECTION (Matching user reference) */
+  .response-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 330px;
+    min-height: 56px;
+    z-index: 1;
+    margin-top: 4px;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .response-heading {
+    font-family: 'Rajdhani', -apple-system, sans-serif;
+    font-size: 23px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: #FFFFFF;
+    margin-bottom: 4px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+  }
+
+  .response-body {
+    font-family: 'Rajdhani', -apple-system, sans-serif;
+    font-size: 15.5px;
+    font-weight: 500;
+    letter-spacing: 0.35px;
+    color: #94A3B8;
+    line-height: 1.35;
+    max-height: 52px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 </style>
 </head>
@@ -291,9 +331,15 @@
     <div class="subtitle-jarvis">YOUR PERSONAL AI ASSISTANT</div>
   </div>
 
-  <!-- SLEEK HEARTBEAT WAVEFORM (NO CONTAINER, NO BRACKETS) -->
+  <!-- REAL-TIME REACTIVE AUDIO FREQUENCY WAVEFORM (MATCHING REFERENCE EXACTLY) -->
   <div class="wave-container">
-    <canvas id="waveformCanvas" width="280" height="54"></canvas>
+    <canvas id="waveformCanvas" width="360" height="76"></canvas>
+  </div>
+
+  <!-- LATEST RESPONSE / GREETING TEXT (MATCHING REFERENCE EXACTLY) -->
+  <div class="response-section" id="responseSection">
+    <div class="response-heading" id="responseHeading">Hello Sir.</div>
+    <div class="response-body" id="responseBody">How can I help you today?</div>
   </div>
 </div>
 
@@ -305,6 +351,9 @@
   const mainContainer = document.getElementById('mainContainer');
   const outerPupils = document.querySelectorAll('.outer-pupil');
   const innerPupils = document.querySelectorAll('.inner-pupil');
+  const responseSection = document.getElementById('responseSection');
+  const responseHeading = document.getElementById('responseHeading');
+  const responseBody = document.getElementById('responseBody');
 
   // Interactive tap triggers assistant
   mainContainer.addEventListener('click', () => {
@@ -318,7 +367,6 @@
   let targetAmplitude = 0.0;
   let isSpeaking = false;
   let time = 0;
-  let heartbeatCycle = 0;
 
   // Eye Saccades (Autonomous Micro-Glances)
   let pupilTargetX = 0;
@@ -350,60 +398,15 @@
   }
   scheduleNextBlink();
 
-  // Mathematical ECG (Electrocardiogram) Cardiac Waveform Formula
-  function getEcgSpike(phase, energy) {
-    // phase runs from 0.0 to 1.0 per heartbeat
-    const amp = Math.max(0.0, energy);
-
-    // 0.0 to 0.28: Resting baseline with delicate micro-tension
-    if (phase < 0.28) {
-      return Math.sin(phase * Math.PI * 8) * (0.4 + amp * 0.8);
-    }
-    // 0.28 to 0.38: P-Wave (Smooth atrium depolarization)
-    if (phase < 0.38) {
-      const p = (phase - 0.28) / 0.10;
-      return Math.sin(p * Math.PI) * (4.2 + amp * 5.5);
-    }
-    // 0.38 to 0.44: PR Segment (Flat transition)
-    if (phase < 0.44) {
-      return 0.0;
-    }
-    // 0.44 to 0.48: Q-Dip (Sharp negative dip)
-    if (phase < 0.48) {
-      const q = (phase - 0.44) / 0.04;
-      return -Math.sin(q * Math.PI) * (4.5 + amp * 8.0);
-    }
-    // 0.48 to 0.55: R-Peak (Main intense systolic spike reaching apex)
-    if (phase < 0.55) {
-      const r = (phase - 0.48) / 0.07;
-      return Math.sin(r * Math.PI) * (21.5 + amp * 15.0);
-    }
-    // 0.55 to 0.61: S-Plunge (Sharp plunge below baseline)
-    if (phase < 0.61) {
-      const s = (phase - 0.55) / 0.06;
-      return -Math.sin(s * Math.PI) * (9.5 + amp * 9.0);
-    }
-    // 0.61 to 0.67: ST Segment
-    if (phase < 0.67) {
-      return 0.0;
-    }
-    // 0.67 to 0.80: T-Wave (Ventricular repolarization wave)
-    if (phase < 0.80) {
-      const t = (phase - 0.67) / 0.13;
-      return Math.sin(t * Math.PI) * (5.5 + amp * 6.0);
-    }
-    // 0.80 to 1.0: Baseline recovery
-    return 0.0;
-  }
+  // Waveform Bar Configuration (Center Gaussian Audio Spectrum)
+  const BAR_COUNT = 65; // odd number for centered apex bar
+  const BAR_WIDTH = 1.8;
+  const GAP = 2.4;
 
   function renderWaveform() {
-    time += 0.016;
-    // Smooth audio response dampening
+    time += 0.035;
+    // Smooth dampening towards target amplitude
     currentAmplitude += (targetAmplitude - currentAmplitude) * 0.20;
-
-    // Heart rate (BPM): 66 BPM idle, accelerates with speech
-    const bpmSpeed = (isSpeaking || currentAmplitude > 0.04) ? (1.35 + currentAmplitude * 0.9) : 0.82;
-    heartbeatCycle = (heartbeatCycle + 0.016 * bpmSpeed) % 1.0;
 
     // Pupil micro-saccades interpolation
     pupilCurrentX += (pupilTargetX - pupilCurrentX) * 0.10;
@@ -417,116 +420,97 @@
     const w = canvas.width;
     const h = canvas.height;
     const centerY = h / 2;
+    const centerX = w / 2;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Compute heartbeat points across width
-    const points = [];
-    const step = 2; // high resolution 2px step
-    const energy = (isSpeaking ? 0.65 : 0.0) + currentAmplitude * 1.3;
+    // 1. Center Atmospheric Crimson Bloom
+    const bloom = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 82);
+    const bloomAlpha = isSpeaking ? 0.38 : (0.24 + currentAmplitude * 0.22);
+    bloom.addColorStop(0, `rgba(255, 20, 20, ${bloomAlpha})`);
+    bloom.addColorStop(0.5, 'rgba(220, 0, 0, 0.08)');
+    bloom.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, w, h);
 
-    for (let x = 0; x <= w; x += step) {
-      const normalizedX = x / w;
-      // Phase along the canvas width, animated by heartbeatCycle
-      const pointPhase = (normalizedX - heartbeatCycle + 2.0) % 1.0;
-      const spike = getEcgSpike(pointPhase, energy);
+    // 2. Glowing Horizontal Laser Baseline (Full span across, smooth edge fade)
+    ctx.save();
+    const lineGrad = ctx.createLinearGradient(0, centerY, w, centerY);
+    lineGrad.addColorStop(0, 'rgba(255, 20, 20, 0)');
+    lineGrad.addColorStop(0.12, 'rgba(255, 30, 30, 0.45)');
+    lineGrad.addColorStop(0.42, 'rgba(255, 45, 45, 0.95)');
+    lineGrad.addColorStop(0.5, 'rgba(255, 235, 235, 1.0)');
+    lineGrad.addColorStop(0.58, 'rgba(255, 45, 45, 0.95)');
+    lineGrad.addColorStop(0.88, 'rgba(255, 30, 30, 0.45)');
+    lineGrad.addColorStop(1, 'rgba(255, 20, 20, 0)');
 
-      // Voice harmonic ripple when speaking or audio detected
-      let voiceRipple = 0;
-      if (energy > 0.05) {
-        voiceRipple = Math.sin(x * 0.28 + time * 14.0) * energy * 2.8 * Math.sin(normalizedX * Math.PI);
+    // Line red glow pass
+    ctx.strokeStyle = 'rgba(255, 20, 20, 0.55)';
+    ctx.shadowColor = '#FF0015';
+    ctx.shadowBlur = 10;
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.moveTo(10, centerY);
+    ctx.lineTo(w - 10, centerY);
+    ctx.stroke();
+
+    // Line crisp laser core
+    ctx.strokeStyle = lineGrad;
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = '#FF4444';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(10, centerY);
+    ctx.lineTo(w - 10, centerY);
+    ctx.stroke();
+    ctx.restore();
+
+    // 3. Dense Vertical Filaments / Audio Spectrum (Symmetrical Gaussian)
+    const totalBarsWidth = BAR_COUNT * (BAR_WIDTH + GAP);
+    const startX = (w - totalBarsWidth) / 2;
+    const centerIdx = Math.floor(BAR_COUNT / 2);
+
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const distFromCenter = Math.abs(i - centerIdx) / centerIdx; // 0 to 1
+      // Gaussian distribution envelope
+      const gaussian = Math.exp(-Math.pow(distFromCenter * 2.7, 2));
+
+      // Organic harmonic wave ripple across filaments
+      const ripple1 = Math.sin(time * 2.6 + i * 0.28);
+      const ripple2 = Math.cos(time * 1.9 - i * 0.35);
+      const harmonic = (ripple1 * 0.6 + ripple2 * 0.4);
+
+      // Base idle height: subtle breathing wave
+      const idleWave = (0.82 + harmonic * 0.18);
+      const idleH = 26.0 * gaussian * idleWave;
+
+      // Active speech audio height
+      const speechWave = Math.sin(time * 6.5 + i * 0.45);
+      const activeH = (currentAmplitude * 32.0 + speechWave * currentAmplitude * 18.0) * gaussian;
+
+      const halfHeight = Math.max(0.8, idleH + (isSpeaking || currentAmplitude > 0.03 ? activeH : 0));
+      const x = startX + i * (BAR_WIDTH + GAP);
+
+      ctx.save();
+      // Glow pass
+      ctx.shadowColor = '#FF0000';
+      ctx.shadowBlur = 8 * gaussian;
+
+      // Vertical filament gradient with bright core at baseline
+      const barGrad = ctx.createLinearGradient(x, centerY - halfHeight, x, centerY + halfHeight);
+      barGrad.addColorStop(0, 'rgba(255, 45, 45, 0.9)');
+      barGrad.addColorStop(0.3, 'rgba(235, 15, 15, 0.95)');
+      if (distFromCenter < 0.35) {
+        barGrad.addColorStop(0.5, 'rgba(255, 235, 235, 1.0)');
+      } else {
+        barGrad.addColorStop(0.5, 'rgba(255, 110, 110, 0.95)');
       }
+      barGrad.addColorStop(0.7, 'rgba(235, 15, 15, 0.95)');
+      barGrad.addColorStop(1, 'rgba(255, 45, 45, 0.9)');
 
-      // Sleek edge taper (fades to 0 at extreme left and right)
-      let edgeTaper = 1.0;
-      if (x < 32) edgeTaper = x / 32;
-      else if (x > w - 32) edgeTaper = (w - x) / 32;
-
-      const y = centerY - (spike + voiceRipple) * edgeTaper;
-      points.push({ x, y, edgeTaper, pointPhase });
-    }
-
-    if (points.length === 0) {
-      requestAnimationFrame(renderWaveform);
-      return;
-    }
-
-    // 1. Ambient Background Trace Glow
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.strokeStyle = isSpeaking ? 'rgba(255, 50, 50, 0.45)' : 'rgba(239, 68, 68, 0.28)';
-    ctx.lineWidth = 4.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowColor = '#FF1111';
-    ctx.shadowBlur = 16;
-    ctx.stroke();
-    ctx.restore();
-
-    // 2. Crisp Blazing Red Neon Pass
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.strokeStyle = isSpeaking ? 'rgba(255, 60, 60, 0.95)' : 'rgba(255, 45, 45, 0.85)';
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowColor = '#FF3333';
-    ctx.shadowBlur = 8;
-    ctx.stroke();
-    ctx.restore();
-
-    // 3. Ultra-Sleek White-Hot Laser Core Line
-    ctx.save();
-    const coreGrad = ctx.createLinearGradient(0, 0, w, 0);
-    coreGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-    coreGrad.addColorStop(0.12, 'rgba(255, 255, 255, 0.7)');
-    coreGrad.addColorStop(0.5, isSpeaking ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 240, 240, 0.9)');
-    coreGrad.addColorStop(0.88, 'rgba(255, 255, 255, 0.7)');
-    coreGrad.addColorStop(0.5, isSpeaking ? 'rgba(255, 255, 255, 1.0)' : 'rgba(255, 240, 240, 0.9)');
-    coreGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.strokeStyle = coreGrad;
-    ctx.lineWidth = 1.1;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 0;
-    ctx.stroke();
-    ctx.restore();
-
-    // 4. Luminous Traveling Heartbeat Pulse Spark
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i];
-      if (Math.abs(p.pointPhase - 0.515) < 0.025 && p.edgeTaper > 0.4) {
-        ctx.save();
-        ctx.shadowColor = '#FFFFFF';
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2.2 + energy * 1.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.shadowColor = '#FF2222';
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = 'rgba(255, 50, 50, 0.6)';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 5.0 + energy * 2.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        break;
-      }
+      ctx.fillStyle = barGrad;
+      ctx.fillRect(x, centerY - halfHeight, BAR_WIDTH, halfHeight * 2);
+      ctx.restore();
     }
 
     requestAnimationFrame(renderWaveform);
@@ -553,7 +537,40 @@
     }
   };
 
-  window.setLatestResponse = function(text) {};
+  // Live response text updater
+  window.setLatestResponse = function(text) {
+    if (!text || !text.trim()) return;
+
+    responseSection.style.opacity = '0';
+    responseSection.style.transform = 'translateY(4px)';
+
+    setTimeout(() => {
+      const clean = text.trim();
+      const periodIdx = clean.indexOf('.');
+      const questionIdx = clean.indexOf('?');
+      const exclamationIdx = clean.indexOf('!');
+      let firstBreak = -1;
+
+      const candidates = [periodIdx, questionIdx, exclamationIdx].filter(idx => idx > 0);
+      if (candidates.length > 0) {
+        firstBreak = Math.min(...candidates);
+      }
+
+      if (firstBreak > 0 && firstBreak < 36 && clean.length > firstBreak + 2) {
+        responseHeading.textContent = clean.substring(0, firstBreak + 1);
+        responseBody.textContent = clean.substring(firstBreak + 1).trim();
+      } else if (clean.length <= 32) {
+        responseHeading.textContent = clean;
+        responseBody.textContent = "";
+      } else {
+        responseHeading.textContent = "JARVIS";
+        responseBody.textContent = clean;
+      }
+
+      responseSection.style.opacity = '1';
+      responseSection.style.transform = 'translateY(0)';
+    }, 200);
+  };
 </script>
 
 </body>
