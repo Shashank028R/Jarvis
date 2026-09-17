@@ -8,12 +8,17 @@
   (function() {
     try {
       var p = new URLSearchParams(window.location.search);
-      if (p.get('theme') === 'gold') {
+      var theme = p.get('theme');
+      if (theme === 'gold') {
         document.documentElement.classList.add('theme-gold');
-        document.addEventListener('DOMContentLoaded', function() {
-          if (document.body) document.body.classList.add('theme-gold');
-        });
+      } else if (theme === 'red') {
+        document.documentElement.classList.add('theme-red');
       }
+      document.addEventListener('DOMContentLoaded', function() {
+        if (!document.body) return;
+        if (theme === 'gold') document.body.classList.add('theme-gold');
+        if (theme === 'red') document.body.classList.add('theme-red');
+      });
     } catch(e) {}
   })();
 </script>
@@ -34,6 +39,15 @@
     --border-accent-bar: rgba(217, 119, 6, 0.25);
     --btn-stroke: #F59E0B;
     --shadow-accent: rgba(245, 158, 11, 0.25);
+  }
+
+  body.theme-red, html.theme-red {
+    --glow: #EF4444;
+    --glow-dim: #991B1B;
+    --border-accent: rgba(239, 68, 68, 0.4);
+    --border-accent-bar: rgba(239, 68, 68, 0.28);
+    --btn-stroke: #EF4444;
+    --shadow-accent: rgba(239, 68, 68, 0.35);
   }
 
   *, *::before, *::after {
@@ -58,7 +72,7 @@
     align-items:center;
     justify-content:flex-end;
     padding-bottom:10px;
-    font-family:'Segoe UI', Arial, Roboto, sans-serif;
+    font-family:'Segoe UI', -apple-system, Roboto, sans-serif;
     overflow:visible !important;
     user-select:none;
     -webkit-user-select:none;
@@ -112,6 +126,10 @@
     background: rgba(229, 168, 59, 0.2);
   }
 
+  body.theme-red .popup-btn:active {
+    background: rgba(239, 68, 68, 0.25);
+  }
+
   .popup-btn svg {
     width: 17px;
     height: 17px;
@@ -133,17 +151,16 @@
     background: var(--border-accent);
   }
 
-  /* Main Standby Bar with REDUCED fixed width (285px) */
+  /* Main Standby Bar with retractable transition */
   .bar{
     position:relative;
-    width:285px;
+    width:292px;
     height:62px;
     border-radius:999px;
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:0 16px;
-    gap:10px;
+    padding:0 14px;
     background:
       linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01) 40%, rgba(0,0,0,0.6) 100%),
       rgba(10,12,14,0.92);
@@ -153,9 +170,99 @@
     box-shadow:
       inset 0 1px 1px rgba(255,255,255,0.2),
       inset 0 -1px 6px rgba(0,0,0,0.7),
-      0 4px 20px rgba(0,0,0,0.7);
+      0 4px 20px rgba(0,0,0,0.7),
+      0 0 12px var(--shadow-accent);
     overflow:hidden;
     box-sizing:border-box;
+    transition: width 0.38s cubic-bezier(0.34, 1.25, 0.64, 1),
+                height 0.38s cubic-bezier(0.34, 1.25, 0.64, 1),
+                border-radius 0.35s ease,
+                padding 0.3s ease,
+                box-shadow 0.35s ease;
+  }
+
+  /* Retracted Floating Button Mode */
+  .bar.retracted {
+    width: 58px !important;
+    height: 58px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    cursor: pointer;
+    justify-content: center !important;
+    align-items: center !important;
+    box-shadow: 0 0 20px var(--shadow-accent), 0 8px 30px rgba(0,0,0,0.9), inset 0 0 10px var(--shadow-accent) !important;
+  }
+
+  .bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    pointer-events: auto;
+  }
+
+  .bar.retracted .bar-content {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.65);
+    display: none !important;
+  }
+
+  /* Floating button trigger shown when retracted */
+  .floating-trigger {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .bar.retracted .floating-trigger {
+    display: flex !important;
+  }
+
+  .floating-orb-core {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, var(--glow) 0%, rgba(10,12,14,0.9) 75%);
+    box-shadow: 0 0 12px var(--glow);
+    animation: floatGlow 2.5s ease-in-out infinite alternate;
+  }
+
+  .floating-orb-core svg {
+    width: 20px;
+    height: 20px;
+    stroke: #FFFFFF;
+    filter: drop-shadow(0 0 4px var(--glow));
+    fill: none;
+  }
+
+  .floating-pulse-ring {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 1.5px solid var(--glow);
+    opacity: 0.7;
+    animation: ringPulse 2.2s cubic-bezier(0.25, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes floatGlow {
+    0% { transform: scale(0.95); opacity: 0.85; }
+    100% { transform: scale(1.08); opacity: 1.0; }
+  }
+
+  @keyframes ringPulse {
+    0% { transform: scale(0.85); opacity: 0.8; }
+    100% { transform: scale(1.4); opacity: 0; }
   }
 
   /* subtle glass sheen */
@@ -223,10 +330,14 @@
     color: #F0E6D2;
   }
 
+  body.theme-red .label {
+    color: #FEE2E2;
+  }
+
   .controls-group{
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:8px;
     flex:0 0 auto;
   }
 
@@ -258,6 +369,10 @@
     filter:drop-shadow(0 0 4px rgba(255,229,153,0.6));
   }
 
+  body.theme-red .icon-btn svg {
+    filter:drop-shadow(0 0 4px rgba(255,100,100,0.65));
+  }
+
   .icon-btn.muted svg{
     stroke:#666666;
     filter:none;
@@ -265,16 +380,16 @@
 
   .divider{
     width:1px;
-    height:22px;
+    height:20px;
     background:var(--border-accent-bar);
     flex:0 0 auto;
     transition:background 0.3s ease;
   }
 
   .power-btn{
-    width:33px;
-    height:33px;
-    min-width:33px;
+    width:32px;
+    height:32px;
+    min-width:32px;
     border-radius:50%;
     border:1.2px solid var(--border-accent);
     display:flex;
@@ -314,8 +429,8 @@
   }
 
   .expand-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     stroke: var(--btn-stroke);
     fill: none;
     filter: drop-shadow(0 0 3px var(--shadow-accent));
@@ -324,6 +439,34 @@
 
   .expand-btn.open {
     transform: rotate(180deg);
+  }
+
+  /* Retract button to shrink into floating button */
+  .retract-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+    padding: 7px;
+    border-radius: 50%;
+    transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease;
+    opacity: 0.85;
+    touch-action: manipulation;
+  }
+
+  .retract-btn:hover, .retract-btn:active {
+    opacity: 1;
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .retract-btn svg {
+    width: 17px;
+    height: 17px;
+    stroke: var(--btn-stroke);
+    fill: none;
+    transition: stroke 0.2s ease;
   }
 
   /* off state */
@@ -375,34 +518,56 @@
 
 <!-- Main Bar -->
 <div class="bar" id="bar">
-  <div class="status-group">
-    <div class="dot" id="dot"></div>
-    <div class="label" id="label">Standby</div>
+  <!-- Content when expanded -->
+  <div class="bar-content" id="barContent">
+    <div class="status-group">
+      <div class="dot" id="dot"></div>
+      <div class="label" id="label">Standby</div>
+    </div>
+
+    <div class="controls-group">
+      <div class="icon-btn" id="micBtn" title="Mute microphone">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+          <path d="M5 10a7 7 0 0 0 14 0"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+      </div>
+
+      <div class="divider" id="divider"></div>
+
+      <div class="power-btn" id="powerBtn" title="Turn off">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="2" x2="12" y2="11"></line>
+          <path d="M7 5a8 8 0 1 0 10 0"></path>
+        </svg>
+      </div>
+
+      <div class="expand-btn" id="expandBtn" title="Camera & Vision">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </div>
+
+      <!-- Retract / Collapse button -->
+      <div class="retract-btn" id="retractBtn" title="Retract to floating button">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+    </div>
   </div>
 
-  <div class="controls-group">
-    <div class="icon-btn" id="micBtn" title="Mute microphone">
+  <!-- Floating trigger button when retracted -->
+  <div class="floating-trigger" id="floatingTrigger" title="Expand Jarvis Bar">
+    <div class="floating-orb-core">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="2" width="6" height="12" rx="3"></rect>
         <path d="M5 10a7 7 0 0 0 14 0"></path>
         <line x1="12" y1="19" x2="12" y2="22"></line>
       </svg>
     </div>
-
-    <div class="divider" id="divider"></div>
-
-    <div class="power-btn" id="powerBtn" title="Turn off">
-      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="2" x2="12" y2="11"></line>
-        <path d="M7 5a8 8 0 1 0 10 0"></path>
-      </svg>
-    </div>
-
-    <div class="expand-btn" id="expandBtn" title="Camera & Vision">
-      <svg viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="18 15 12 9 6 15"></polyline>
-      </svg>
-    </div>
+    <div class="floating-pulse-ring"></div>
   </div>
 </div>
 
@@ -412,13 +577,55 @@
   const micBtn = document.getElementById('micBtn');
   const powerBtn = document.getElementById('powerBtn');
   const expandBtn = document.getElementById('expandBtn');
+  const retractBtn = document.getElementById('retractBtn');
+  const floatingTrigger = document.getElementById('floatingTrigger');
   const visionPopup = document.getElementById('visionPopup');
   const cameraBtn = document.getElementById('cameraBtn');
   const visionBtn = document.getElementById('visionBtn');
+  const dotEl = document.getElementById('dot');
 
   let isOn = true;
   let isMuted = false;
   let isPopupOpen = false;
+
+  // Retract to floating button
+  function retractBar(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (isPopupOpen) {
+      isPopupOpen = false;
+      visionPopup.classList.remove('show');
+      expandBtn.classList.remove('open');
+    }
+    barEl.classList.add('retracted');
+  }
+
+  // Expand back to original bar shape with animation
+  function expandBar(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    barEl.classList.remove('retracted');
+  }
+
+  window.retractBar = retractBar;
+  window.expandBar = expandBar;
+  window.toggleRetractBar = function() {
+    if (barEl.classList.contains('retracted')) {
+      expandBar();
+    } else {
+      retractBar();
+    }
+  };
+
+  retractBtn.addEventListener('click', retractBar);
+  retractBtn.addEventListener('touchend', retractBar);
+
+  floatingTrigger.addEventListener('click', expandBar);
+  floatingTrigger.addEventListener('touchend', expandBar);
+
+  barEl.addEventListener('click', (e) => {
+    if (barEl.classList.contains('retracted')) {
+      expandBar(e);
+    }
+  });
 
   expandBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -454,26 +661,37 @@
   });
 
   micBtn.addEventListener('click', () => {
+    if (!isOn) return;
+    isMuted = !isMuted;
+    micBtn.classList.toggle('muted', isMuted);
     if (window.AndroidInterface && window.AndroidInterface.onMicClicked) {
       window.AndroidInterface.onMicClicked();
     }
   });
 
   powerBtn.addEventListener('click', () => {
+    isOn = !isOn;
+    barEl.classList.toggle('off', !isOn);
+    powerBtn.classList.toggle('off', !isOn);
+    micBtn.classList.toggle('muted', !isOn || isMuted);
     if (window.AndroidInterface && window.AndroidInterface.onPowerClicked) {
       window.AndroidInterface.onPowerClicked();
     }
   });
 
   window.setAppTheme = function(themeName) {
+    document.documentElement.classList.remove('theme-gold', 'theme-red');
+    if (document.body) document.body.classList.remove('theme-gold', 'theme-red');
     if (themeName === 'gold') {
       document.documentElement.classList.add('theme-gold');
       if (document.body) document.body.classList.add('theme-gold');
-    } else {
-      document.documentElement.classList.remove('theme-gold');
-      if (document.body) document.body.classList.remove('theme-gold');
+    } else if (themeName === 'red') {
+      document.documentElement.classList.add('theme-red');
+      if (document.body) document.body.classList.add('theme-red');
     }
   };
+
+  window.setTheme = window.setAppTheme;
 
   window.setBarState = function(stateText, colorHex, muted, poweredOn) {
     isOn = (poweredOn !== undefined) ? poweredOn : true;
@@ -509,8 +727,6 @@
       cameraBtn.querySelector('svg').style.stroke = getComputedStyle(document.documentElement).getPropertyValue('--btn-stroke').trim() || "#00E5FF";
     }
   };
-
-  const dotEl = document.getElementById('dot');
 
   window.setAudioAmplitude = function(rms) {
     if (!isOn || isMuted) return;

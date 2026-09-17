@@ -43,7 +43,9 @@ object OpenRouterWebsiteGenerator {
 
     fun getApiKey(context: Context): String {
         val prefs = context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(PREF_OPENROUTER_KEY, "") ?: ""
+        val saved = prefs.getString(PREF_OPENROUTER_KEY, "") ?: ""
+        if (saved.isNotBlank()) return saved
+        return EnvLoader.getOpenRouterApiKey(context)
     }
 
     fun saveApiKey(context: Context, apiKey: String) {

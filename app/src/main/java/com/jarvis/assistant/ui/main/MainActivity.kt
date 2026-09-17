@@ -56,6 +56,8 @@ class MainActivity : AppCompatActivity() {
     enum class OrbState { IDLE, LISTENING, SPEAKING, THINKING, ACTIVE }
 
     private lateinit var orbWebView: android.webkit.WebView
+    private lateinit var orbCenterFrame: View
+    private lateinit var blazeRedWebView: android.webkit.WebView
     private lateinit var standbyBarWebView: android.webkit.WebView
     private lateinit var classicHomeLayout: View
     private lateinit var cyberHudWebView: android.webkit.WebView
@@ -511,6 +513,7 @@ class MainActivity : AppCompatActivity() {
         // but gates responses until wake word ("jarvis", "hi jarvis", "hello jarvis", "hey jarvis") is spoken
         voiceService?.setAppForeground(false)
         orbWebView.onPause()
+        blazeRedWebView.onPause()
         standbyBarWebView.onPause()
         cyberHudWebView.onPause()
         val enableOverlay = prefs().getBoolean("enable_floating_overlay", false)
@@ -540,6 +543,7 @@ class MainActivity : AppCompatActivity() {
             voiceService?.uiListener = voiceListener
         }
         orbWebView.onResume()
+        blazeRedWebView.onResume()
         standbyBarWebView.onResume()
         cyberHudWebView.onResume()
         applyHomeScreenStyle()
@@ -604,6 +608,7 @@ class MainActivity : AppCompatActivity() {
         micRingBreathingAnimator?.cancel()
         orbSkeletonAnimator?.cancel()
         footerSkeletonAnimator?.cancel()
+        try { blazeRedWebView.destroy() } catch (_: Exception) {}
         if (isBound) {
             voiceService?.removeListener(voiceListener)
             unbindService(serviceConnection)
@@ -668,7 +673,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val activeTheme = ThemeManager.getTheme(this)
-        orbWebView.loadUrl("file:///android_asset/index.html?theme=$activeTheme")
+        orbCenterFrame = findViewById(R.id.orbCenterFrame)
+        blazeRedWebView = findViewById(R.id.blazeRedWebView)
+        blazeRedWebView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            allowFileAccess = true
+            allowContentAccess = true
+            @Suppress("DEPRECATION")
+            allowFileAccessFromFileURLs = true
+            @Suppress("DEPRECATION")
+            allowUniversalAccessFromFileURLs = true
+            mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        }
+        blazeRedWebView.webChromeClient = android.webkit.WebChromeClient()
+        blazeRedWebView.setBackgroundColor(Color.TRANSPARENT)
+        blazeRedWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        blazeRedWebView.addJavascriptInterface(OrbBridge(), "AndroidInterface")
+        blazeRedWebView.loadUrl("file:///android_asset/blaze-red.html")
+
         standbyBarWebView = findViewById(R.id.standbyBarWebView)
         standbyBarWebView.settings.apply {
             javaScriptEnabled = true
@@ -843,6 +866,15 @@ class MainActivity : AppCompatActivity() {
         sendBtn.setBackgroundResource(ThemeManager.getSaveButtonDrawable(this))
         findViewById<android.widget.TextView>(R.id.chatDrawerTitleText)?.setTextColor(primaryColor)
         chatAdapter.notifyDataSetChanged()
+
+        val isRed = ThemeManager.isRedTheme(this)
+        if (isRed) {
+            orbCenterFrame.visibility = View.GONE
+            blazeRedWebView.visibility = View.VISIBLE
+        } else {
+            blazeRedWebView.visibility = View.GONE
+            orbCenterFrame.visibility = View.VISIBLE
+        }
     }
 
     private fun applyHomeScreenStyle() {
@@ -1293,6 +1325,7 @@ class MainActivity : AppCompatActivity() {
 
         val jsOrb = "if (window.setOrbState) window.setOrbState('${state.name}', '$themeColorHex', $isMutedState, $isPoweredOn);"
         orbWebView.evaluateJavascript(jsOrb, null)
+        blazeRedWebView.evaluateJavascript("if (window.setOrbState) window.setOrbState('${state.name}');", null)
 
         if (cyberHudLoaded) {
             val cyberHudState = if (!hasApiKey || isShutDown || isMutedState) 0 else when (state) {
@@ -1308,6 +1341,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateOrbAudioLevel(level: Float) {
         orbWebView.evaluateJavascript("if (window.setAudioLevel) window.setAudioLevel($level);", null)
+        blazeRedWebView.evaluateJavascript("if (window.setAudioAmplitude) window.setAudioAmplitude($level);", null)
     }
 
     private fun updateBarAudioLevel(level: Float) {
@@ -1388,10 +1422,11 @@ class MainActivity : AppCompatActivity() {
             chatAdapter.addMessage(jarvisMsg)
             com.jarvis.assistant.util.ChatHistoryManager.saveMessage(this, jarvisMsg)
             chatRecycler.smoothScrollToPosition(chatAdapter.itemCount - 1)
+            val quotedJarvis = JSONObject.quote(jarvisText)
             if (cyberHudLoaded) {
-                val quotedJarvis = JSONObject.quote(jarvisText)
                 cyberHudWebView.evaluateJavascript("if (window.addChatMessage) window.addChatMessage(false, $quotedJarvis);", null)
             }
+            blazeRedWebView.evaluateJavascript("if (window.setLatestResponse) window.setLatestResponse($quotedJarvis);", null)
         }
 
         inputBuffer.clear()

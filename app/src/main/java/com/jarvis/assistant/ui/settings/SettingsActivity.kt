@@ -99,7 +99,8 @@ class SettingsActivity : AppCompatActivity() {
 
     private val themeDescriptions = listOf(
         "Arc Blue Theme (Electric Cyan & Deep Space) ⚡",
-        "Amber Gold Theme (Luxury Cyber Gold) 👑"
+        "Amber Gold Theme (Luxury Cyber Gold) 👑",
+        "Blaze Red Theme (Aggressive Cyber Red & Stealth Black) 🔥"
     )
 
     private var callCapableSims: List<SimManager.SimOption> = emptyList()
@@ -205,7 +206,11 @@ class SettingsActivity : AppCompatActivity() {
 
         themeSegmented.onSelectionChange { index ->
             selectedThemeIndex = index
-            val newTheme = if (index == 1) ThemeManager.THEME_GOLD else ThemeManager.THEME_BLUE
+            val newTheme = when (index) {
+                1 -> ThemeManager.THEME_GOLD
+                2 -> ThemeManager.THEME_RED
+                else -> ThemeManager.THEME_BLUE
+            }
             ThemeManager.setTheme(this, newTheme)
             AnimUtils.crossFadeText(themeDescriptionText, themeDescriptions[index])
             applyThemeVisuals()
@@ -305,8 +310,12 @@ class SettingsActivity : AppCompatActivity() {
         homeStyleDescriptionText.text = homeStyleDescriptions[selectedHomeStyleIndex]
 
         val currentTheme = ThemeManager.getTheme(this)
-        selectedThemeIndex = if (currentTheme == ThemeManager.THEME_GOLD) 1 else 0
-        themeSegmented.setOptions(listOf("Arc Blue ⚡", "Amber Gold 👑"), selectedThemeIndex)
+        selectedThemeIndex = when (currentTheme) {
+            ThemeManager.THEME_GOLD -> 1
+            ThemeManager.THEME_RED -> 2
+            else -> 0
+        }
+        themeSegmented.setOptions(listOf("Arc Blue ⚡", "Amber Gold 👑", "Blaze Red 🔥"), selectedThemeIndex)
         themeDescriptionText.text = themeDescriptions[selectedThemeIndex]
 
         updateThemeSectionVisibility()
@@ -464,7 +473,11 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val newUserName = userNameInput.text.toString().trim()
-        val newTheme = if (selectedThemeIndex == 1) ThemeManager.THEME_GOLD else ThemeManager.THEME_BLUE
+        val newTheme = when (selectedThemeIndex) {
+            1 -> ThemeManager.THEME_GOLD
+            2 -> ThemeManager.THEME_RED
+            else -> ThemeManager.THEME_BLUE
+        }
         val homeStyleValue = if (selectedHomeStyleIndex == 1) "cyber_hud" else "classic"
         val previousTheme = ThemeManager.getTheme(this)
 

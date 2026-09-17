@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JARVIS Blaze Red Core</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background-color: #000000 !important;
+    background: #000000 !important;
+    overflow: hidden;
+    font-family: 'Rajdhani', 'Segoe UI', -apple-system, sans-serif;
+  }
+
+  #mainContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  /* Ambient radial background glow behind eyes */
+  .ambient-glow {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 340px;
+    height: 180px;
+    background: radial-gradient(ellipse at center, rgba(239, 68, 68, 0.22) 0%, rgba(220, 38, 38, 0.1) 40%, rgba(0, 0, 0, 0) 72%);
+    filter: blur(24px);
+    pointer-events: none;
+    z-index: 0;
+    animation: ambientBreathe 4s ease-in-out infinite alternate;
+  }
+
+  /* HEADLIGHTS / EYES SECTION */
+  .eyes-wrapper {
+    position: relative;
+    width: 90%;
+    max-width: 380px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    margin-bottom: 24px;
+    margin-top: -10px;
+  }
+
+  .eyes-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    mix-blend-mode: screen;
+    -webkit-mask-image: radial-gradient(ellipse 95% 85% at 50% 50%, black 60%, transparent 100%);
+    mask-image: radial-gradient(ellipse 95% 85% at 50% 50%, black 60%, transparent 100%);
+    filter: drop-shadow(0 0 14px rgba(255, 30, 30, 0.9)) drop-shadow(0 0 30px rgba(239, 68, 68, 0.55));
+    animation: eyePulse 3.8s ease-in-out infinite alternate;
+    transition: filter 0.3s ease, transform 0.3s ease;
+  }
+
+  /* Active speaking flare */
+  .eyes-img.speaking {
+    animation: eyeSpeakingFlare 1.1s ease-in-out infinite alternate !important;
+  }
+
+  @keyframes eyePulse {
+    0% {
+      filter: drop-shadow(0 0 10px rgba(255, 20, 20, 0.75)) drop-shadow(0 0 24px rgba(220, 38, 38, 0.45));
+      transform: scale(0.99);
+      opacity: 0.94;
+    }
+    50% {
+      filter: drop-shadow(0 0 16px rgba(255, 40, 40, 0.95)) drop-shadow(0 0 38px rgba(239, 68, 68, 0.65));
+      transform: scale(1.015);
+      opacity: 1.0;
+    }
+    100% {
+      filter: drop-shadow(0 0 10px rgba(255, 20, 20, 0.75)) drop-shadow(0 0 24px rgba(220, 38, 38, 0.45));
+      transform: scale(0.99);
+      opacity: 0.94;
+    }
+  }
+
+  @keyframes eyeSpeakingFlare {
+    0% {
+      filter: drop-shadow(0 0 16px rgba(255, 40, 40, 0.9)) drop-shadow(0 0 36px rgba(255, 0, 0, 0.7));
+      transform: scale(1.01);
+    }
+    100% {
+      filter: drop-shadow(0 0 26px rgba(255, 60, 60, 1.0)) drop-shadow(0 0 55px rgba(255, 10, 10, 0.9));
+      transform: scale(1.035);
+    }
+  }
+
+  @keyframes ambientBreathe {
+    0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.95); }
+    100% { opacity: 1.0; transform: translate(-50%, -50%) scale(1.1); }
+  }
+
+  /* TYPOGRAPHY SECTION */
+  .title-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    margin-bottom: 22px;
+  }
+
+  .title-jarvis {
+    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 12px;
+    color: #F8FAFC;
+    text-transform: uppercase;
+    text-indent: 12px; /* balance letter-spacing visually */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 22px rgba(239, 68, 68, 0.45);
+    margin-bottom: 7px;
+  }
+
+  .subtitle-jarvis {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 4.8px;
+    color: #8E95A5;
+    text-transform: uppercase;
+    text-indent: 4.8px;
+    opacity: 0.85;
+  }
+
+  /* AUDIO WAVEFORM CANVAS */
+  .wave-container {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    margin-bottom: 24px;
+  }
+
+  #waveformCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* LATEST RESPONSE SECTION */
+  .response-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 320px;
+    min-height: 58px;
+    z-index: 1;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .response-heading {
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #FFFFFF;
+    margin-bottom: 3px;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+  }
+
+  .response-body {
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    color: #94A3B8;
+    line-height: 1.35;
+    max-height: 52px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+</style>
+</head>
+<body>
+
+<div id="mainContainer">
+  <!-- Subtle red backlight halo behind eyes -->
+  <div class="ambient-glow"></div>
+
+  <!-- HEADLIGHTS / EYES -->
+  <div class="eyes-wrapper" id="eyesWrapper">
+    <img src="eyes_crop.png" alt="JARVIS Eyes" class="eyes-img" id="eyesImg" />
+  </div>
+
+  <!-- TITLE & SUBTITLE -->
+  <div class="title-section">
+    <div class="title-jarvis">J&#923;RVIS</div>
+    <div class="subtitle-jarvis">YOUR PERSONAL AI ASSISTANT</div>
+  </div>
+
+  <!-- REAL-TIME REACTIVE AUDIO WAVEFORM -->
+  <div class="wave-container">
+    <canvas id="waveformCanvas" width="340" height="48"></canvas>
+  </div>
+
+  <!-- LATEST RESPONSE / GREETING TEXT -->
+  <div class="response-section" id="responseSection">
+    <div class="response-heading" id="responseHeading">Hello Sir.</div>
+    <div class="response-body" id="responseBody">How can I help you today?</div>
+  </div>
+</div>
+
+<script>
+  // Elements
+  const eyesImg = document.getElementById('eyesImg');
+  const canvas = document.getElementById('waveformCanvas');
+  const ctx = canvas.getContext('2d');
+  const responseSection = document.getElementById('responseSection');
+  const responseHeading = document.getElementById('responseHeading');
+  const responseBody = document.getElementById('responseBody');
+  const mainContainer = document.getElementById('mainContainer');
+
+  // Interactive tap triggers assistant
+  mainContainer.addEventListener('click', () => {
+    if (window.AndroidInterface && window.AndroidInterface.onOrbClicked) {
+      window.AndroidInterface.onOrbClicked();
+    }
+  });
+
+  // State
+  let currentAmplitude = 0.0;
+  let targetAmplitude = 0.0;
+  let isSpeaking = false;
+  let time = 0;
+
+  // Waveform Bar Configuration
+  const BAR_COUNT = 71; // odd number for perfect center bar
+  const BAR_WIDTH = 2.0;
+  const GAP = 2.6;
+
+  function renderWaveform() {
+    time += 0.045;
+    // Smooth dampening towards target amplitude
+    currentAmplitude += (targetAmplitude - currentAmplitude) * 0.18;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerY = height / 2;
+
+    ctx.clearRect(0, 0, width, height);
+
+    // 1. Horizontal Central Laser Beam
+    const beamGrad = ctx.createLinearGradient(0, centerY, width, centerY);
+    beamGrad.addColorStop(0, 'rgba(239, 68, 68, 0)');
+    beamGrad.addColorStop(0.2, 'rgba(239, 68, 68, 0.45)');
+    beamGrad.addColorStop(0.5, 'rgba(255, 60, 60, 0.95)');
+    beamGrad.addColorStop(0.8, 'rgba(239, 68, 68, 0.45)');
+    beamGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+    ctx.strokeStyle = beamGrad;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(0, centerY);
+    ctx.lineTo(width, centerY);
+    ctx.stroke();
+
+    // 2. Vertical Audio Frequency Bars
+    const totalWaveWidth = (BAR_COUNT * (BAR_WIDTH + GAP));
+    const startX = (width - totalWaveWidth) / 2;
+    const centerIndex = Math.floor(BAR_COUNT / 2);
+
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const distFromCenter = Math.abs(i - centerIndex) / centerIndex; // 0 at center, 1 at edge
+      // Gaussian / Cosine envelope for taper
+      const envelope = Math.max(0, Math.cos(distFromCenter * Math.PI * 0.5));
+
+      // Harmonic oscillations
+      const wave1 = Math.sin(time * 2.5 + i * 0.35);
+      const wave2 = Math.cos(time * 3.8 - i * 0.22);
+      const harmonic = (wave1 * 0.6 + wave2 * 0.4);
+
+      // Base idle height: subtle breathing
+      const idleH = (1.5 + Math.sin(time * 1.8 + i * 0.2) * 1.2) * envelope;
+
+      // Active speech height
+      const activeH = (currentAmplitude * 20.0 + (harmonic * currentAmplitude * 12.0)) * envelope;
+
+      const halfHeight = Math.max(1.0, idleH + (isSpeaking || currentAmplitude > 0.04 ? activeH : 0));
+
+      const x = startX + i * (BAR_WIDTH + GAP);
+
+      // Gradient for each bar
+      const barGrad = ctx.createLinearGradient(x, centerY - halfHeight, x, centerY + halfHeight);
+      barGrad.addColorStop(0, 'rgba(255, 80, 80, 0.85)');
+      barGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.95)');
+      barGrad.addColorStop(1, 'rgba(255, 80, 80, 0.85)');
+
+      ctx.fillStyle = barGrad;
+      ctx.fillRect(x, centerY - halfHeight, BAR_WIDTH, halfHeight * 2);
+    }
+
+    requestAnimationFrame(renderWaveform);
+  }
+
+  requestAnimationFrame(renderWaveform);
+
+  // External Native Hooks
+  window.setAudioAmplitude = function(rms) {
+    const val = Math.min(1.0, Math.max(0.0, rms));
+    targetAmplitude = val;
+  };
+
+  window.setOrbState = function(stateName) {
+    if (stateName === 'SPEAKING') {
+      isSpeaking = true;
+      eyesImg.classList.add('speaking');
+    } else {
+      isSpeaking = false;
+      eyesImg.classList.remove('speaking');
+      if (stateName === 'IDLE') {
+        targetAmplitude = 0.0;
+      }
+    }
+  };
+
+  // Live response text updater
+  window.setLatestResponse = function(text) {
+    if (!text || !text.trim()) return;
+
+    responseSection.style.opacity = '0';
+    responseSection.style.transform = 'translateY(4px)';
+
+    setTimeout(() => {
+      const clean = text.trim();
+      // Split into heading and body if long, or display nicely
+      const periodIdx = clean.indexOf('.');
+      const questionIdx = clean.indexOf('?');
+      const exclamationIdx = clean.indexOf('!');
+      let firstBreak = -1;
+
+      const candidates = [periodIdx, questionIdx, exclamationIdx].filter(idx => idx > 0);
+      if (candidates.length > 0) {
+        firstBreak = Math.min(...candidates);
+      }
+
+      if (firstBreak > 0 && firstBreak < 36 && clean.length > firstBreak + 2) {
+        responseHeading.textContent = clean.substring(0, firstBreak + 1);
+        responseBody.textContent = clean.substring(firstBreak + 1).trim();
+      } else if (clean.length <= 32) {
+        responseHeading.textContent = clean;
+        responseBody.textContent = "";
+      } else {
+        responseHeading.textContent = "JARVIS";
+        responseBody.textContent = clean;
+      }
+
+      responseSection.style.opacity = '1';
+      responseSection.style.transform = 'translateY(0)';
+    }, 200);
+  };
+</script>
+
+</body>
+</html>

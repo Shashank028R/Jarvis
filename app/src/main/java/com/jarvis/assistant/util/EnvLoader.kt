@@ -70,4 +70,19 @@ object EnvLoader {
             ""
         }
     }
+
+    fun getOpenRouterApiKey(context: Context): String {
+        return try {
+            val properties = Properties()
+            properties.load(context.assets.open("env.properties"))
+            val key = properties.getProperty("OPENROUTER_API_KEY")?.trim() ?: ""
+            if (key.isNotEmpty() && !key.contains("YOUR_OPENROUTER_API_KEY")) {
+                key
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            ""
+        }
+    }
 }

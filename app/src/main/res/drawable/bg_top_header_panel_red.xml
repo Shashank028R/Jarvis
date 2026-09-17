@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Faint Ambient Blaze Red Halo (outer backlight separator) -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <solid android:color="#121A0A0A" />
+            <stroke
+                android:width="2dp"
+                android:color="#44EF4444" />
+        </shape>
+    </item>
+
+    <!-- Deep Matte-Black Glass Surface with Metallic Red Outline -->
+    <item
+        android:left="1.5dp"
+        android:right="1.5dp"
+        android:top="1.5dp"
+        android:bottom="1.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#201010"
+                android:centerColor="#0E0808"
+                android:endColor="#060404"
+                android:type="linear" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#5C1D1D" />
+        </shape>
+    </item>
+
+    <!-- Gentle Top Edge Glass Crimson Highlight -->
+    <item
+        android:left="45dp"
+        android:right="45dp"
+        android:top="1.5dp"
+        android:height="2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="#00F87171"
+                android:centerColor="#F87171"
+                android:endColor="#00F87171"
+                android:type="linear" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+
+    <!-- Soft Blaze Red Light Bloom at Bottom Center -->
+    <item
+        android:left="65dp"
+        android:right="65dp"
+        android:bottom="1.5dp"
+        android:height="2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:startColor="#00EF4444"
+                android:centerColor="#EF4444"
+                android:endColor="#00EF4444"
+                android:type="linear" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</layer-list>

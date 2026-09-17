@@ -37,6 +37,23 @@
         <item name="android:windowAnimationStyle">@style/Jarvis.ActivityTransition</item>
     </style>
 
+    <!-- Blaze Red Theme (Aggressive Cyber Red & Stealth Black) -->
+    <style name="Theme.Jarvis.Red" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#EF4444</item>
+        <item name="colorPrimaryVariant">#DC2626</item>
+        <item name="colorOnPrimary">@color/text_on_accent</item>
+        <item name="colorSecondary">#F87171</item>
+        <item name="colorAccent">#EF4444</item>
+        <item name="colorControlHighlight">#33EF4444</item>
+        <item name="android:windowBackground">@color/bg_base</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/bg_base</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowContentTransitions">true</item>
+        <item name="android:windowAnimationStyle">@style/Jarvis.ActivityTransition</item>
+    </style>
+
     <style name="Jarvis.ActivityTransition" parent="android:Animation.Activity">
         <item name="android:activityOpenEnterAnimation">@anim/activity_open_enter</item>
         <item name="android:activityOpenExitAnimation">@anim/activity_open_exit</item>
