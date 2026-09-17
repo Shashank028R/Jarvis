@@ -711,7 +711,7 @@
     window.setAppTheme = function(themeName) {
       if (!PALETTES[themeName]) return;
       if (themeName === activeThemeKey) return;
-      window.location.search = '?theme=' + themeName;
+      window.location.replace('file:///android_asset/index.html?theme=' + themeName);
     };
 
     window.addEventListener("resize", function() {

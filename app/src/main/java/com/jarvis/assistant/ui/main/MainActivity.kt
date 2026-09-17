@@ -363,7 +363,9 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             currentAppliedTheme = newTheme
             applyThemeVisuals()
-            orbWebView.evaluateJavascript("if (window.setAppTheme) window.setAppTheme('$newTheme');", null)
+            if (newTheme != ThemeManager.THEME_RED) {
+                orbWebView.loadUrl("file:///android_asset/index.html?theme=$newTheme")
+            }
             standbyBarWebView.evaluateJavascript("if (window.setAppTheme) window.setAppTheme('$newTheme');", null)
         }
     }
@@ -533,7 +535,9 @@ class MainActivity : AppCompatActivity() {
         if (currentAppliedTheme != activeTheme) {
             currentAppliedTheme = activeTheme
             applyThemeVisuals()
-            orbWebView.evaluateJavascript("if (window.setAppTheme) window.setAppTheme('$activeTheme');", null)
+            if (activeTheme != ThemeManager.THEME_RED) {
+                orbWebView.loadUrl("file:///android_asset/index.html?theme=$activeTheme")
+            }
             standbyBarWebView.evaluateJavascript("if (window.setAppTheme) window.setAppTheme('$activeTheme');", null)
         }
 
@@ -547,9 +551,6 @@ class MainActivity : AppCompatActivity() {
         standbyBarWebView.onResume()
         cyberHudWebView.onResume()
         applyHomeScreenStyle()
-
-        orbWebView.evaluateJavascript("if (window.setAppTheme) window.setAppTheme('$activeTheme');", null)
-        standbyBarWebView.evaluateJavascript("if (window.setAppTheme) window.setAppTheme('$activeTheme');", null)
         applyThemeVisuals()
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M || android.provider.Settings.canDrawOverlays(this)) {
             com.jarvis.assistant.service.FloatingOrbService.stopService(this)
@@ -673,6 +674,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val activeTheme = ThemeManager.getTheme(this)
+        orbWebView.loadUrl("file:///android_asset/index.html?theme=$activeTheme")
+
         orbCenterFrame = findViewById(R.id.orbCenterFrame)
         blazeRedWebView = findViewById(R.id.blazeRedWebView)
         blazeRedWebView.settings.apply {

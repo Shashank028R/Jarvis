@@ -19,6 +19,26 @@ object EnvLoader {
     fun getApiKey(context: Context): String {
         cachedApiKey?.takeIf { it.isNotBlank() }?.let { return it }
 
+        // 1. Check local env.properties first (direct developer/user key)
+        val envKey = try {
+            val properties = Properties()
+            properties.load(context.assets.open("env.properties"))
+            val key = properties.getProperty("GEMINI_API_KEY")?.trim() ?: ""
+            if (key.isNotEmpty() && !key.contains("YOUR_GEMINI_API_KEY")) key else ""
+        } catch (e: Exception) {
+            ""
+        }
+
+        if (envKey.isNotEmpty()) {
+            cachedApiKey = envKey
+            try {
+                context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit().putString("api_key", envKey).apply()
+            } catch (e: Exception) {}
+            return envKey
+        }
+
+        // 2. Fallback to user-saved SharedPreferences key
         val prefsKey = context.getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
             .getString("api_key", "")?.trim() ?: ""
         if (prefsKey.isNotEmpty()) {
@@ -26,22 +46,7 @@ object EnvLoader {
             return prefsKey
         }
 
-        return try {
-            val assetManager = context.assets
-            val inputStream = assetManager.open("env.properties")
-            val properties = Properties()
-            properties.load(inputStream)
-            val apiKey = properties.getProperty("GEMINI_API_KEY")?.trim() ?: ""
-            if (apiKey.isNotEmpty() && !apiKey.contains("YOUR_GEMINI_API_KEY")) {
-                cachedApiKey = apiKey
-                apiKey
-            } else {
-                ""
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("EnvLoader", "Failed to load API key from env.properties", e)
-            ""
-        }
+        return ""
     }
 
     fun getYoutubeApiKey(context: Context): String {
