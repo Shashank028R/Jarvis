@@ -87,6 +87,23 @@
     animation: eyeReflexSquint 0.22s cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
   }
 
+  /* Powered-off dormant state */
+  #mainContainer.powered-off .ambient-glow {
+    opacity: 0.02;
+    animation: none !important;
+  }
+  #mainContainer.powered-off .eyes-wrapper {
+    filter: drop-shadow(0 0 4px rgba(255, 30, 30, 0.15)) !important;
+    opacity: 0.22;
+    animation: none !important;
+  }
+  #mainContainer.powered-off .wave-container {
+    opacity: 0.12;
+  }
+  #mainContainer.powered-off .response-container {
+    opacity: 0.15;
+  }
+
   @keyframes eyeReflexSquint {
     0% { transform: scaleY(1) scaleX(1); }
     40% { transform: scaleY(0.08) scaleX(1.03); filter: drop-shadow(0 0 18px rgba(255, 40, 40, 1.0)); }
@@ -161,7 +178,7 @@
     opacity: 0.85;
   }
 
-  /* SLEEK AUDIO FREQUENCY FILAMENT WAVEFORM & LASER HORIZON */
+  /* SLEEK AUDIO FREQUENCY FILAMENT WAVEFORM & LASER HORIZON (Shifted lower) */
   .wave-container {
     position: relative;
     width: 100%;
@@ -171,10 +188,11 @@
     align-items: center;
     justify-content: center;
     z-index: 1;
-    margin-top: 20px;
-    margin-bottom: 6px;
+    margin-top: 72px; /* Shifted lower towards bottom between eyes and navbar */
+    margin-bottom: 8px;
     background: transparent !important;
     border: none !important;
+    transition: opacity 0.3s ease;
   }
 
   #waveformCanvas {
@@ -184,42 +202,59 @@
     background: transparent !important;
   }
 
-  /* LATEST RESPONSE SECTION (Matching user reference) */
+  /* LATEST RESPONSE SECTION (Matching user reference - smaller sleek text) */
   .response-section {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    max-width: 330px;
-    min-height: 56px;
+    max-width: 320px;
+    min-height: 52px;
     z-index: 1;
-    margin-top: 4px;
+    margin-top: 6px;
     transition: opacity 0.25s ease, transform 0.25s ease;
   }
 
   .response-heading {
     font-family: 'Rajdhani', -apple-system, sans-serif;
-    font-size: 23px;
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     color: #FFFFFF;
-    margin-bottom: 4px;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    margin-bottom: 3px;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
   }
 
   .response-body {
     font-family: 'Rajdhani', -apple-system, sans-serif;
-    font-size: 15.5px;
+    font-size: 13.5px;
     font-weight: 500;
-    letter-spacing: 0.35px;
+    letter-spacing: 0.3px;
     color: #94A3B8;
     line-height: 1.35;
-    max-height: 52px;
+    max-height: 46px;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  /* POWERED OFF / SLEEP STATE */
+  #mainContainer.powered-off .eyes-wrapper {
+    opacity: 0.22;
+    filter: drop-shadow(0 0 4px rgba(255, 20, 20, 0.2));
+    animation: none !important;
+  }
+  #mainContainer.powered-off .ambient-glow {
+    opacity: 0.12;
+    animation: none !important;
+  }
+  #mainContainer.powered-off .wave-container {
+    opacity: 0.18;
+  }
+  #mainContainer.powered-off .response-section {
+    opacity: 0.35;
   }
 </style>
 </head>
@@ -524,13 +559,24 @@
     targetAmplitude = val;
   };
 
-  window.setOrbState = function(stateName) {
+  window.setOrbState = function(stateName, isPoweredOn) {
+    const poweredOff = (isPoweredOn === false || stateName === 'OFF');
+    const container = document.getElementById('mainContainer');
+    if (container) {
+      container.classList.toggle('powered-off', poweredOff);
+    }
+    if (poweredOff) {
+      isSpeaking = false;
+      targetAmplitude = 0.0;
+      if (eyesWrapper) eyesWrapper.classList.remove('speaking');
+      return;
+    }
     if (stateName === 'SPEAKING') {
       isSpeaking = true;
-      eyesWrapper.classList.add('speaking');
+      if (eyesWrapper) eyesWrapper.classList.add('speaking');
     } else {
       isSpeaking = false;
-      eyesWrapper.classList.remove('speaking');
+      if (eyesWrapper) eyesWrapper.classList.remove('speaking');
       if (stateName === 'IDLE') {
         targetAmplitude = 0.0;
       }

@@ -573,6 +573,13 @@ class MainActivity : AppCompatActivity() {
             ?: "models/gemini-3.1-flash-live-preview"
 
         if (hasKey) {
+            if (isPowerKilled()) {
+                isShutDown = true
+                isMuted = true
+                setOrbState(OrbState.IDLE)
+                return
+            }
+
             val sessionRunning = voiceService?.isSessionRunning() == true
             val serviceVoiceMismatch = voiceService != null && voiceService?.getCurrentVoice() != currentVoice
             val settingsChanged = currentKey != activeApiKey ||
@@ -1110,6 +1117,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun prefs() = getSharedPreferences(JarvisApplication.PREFS_NAME, Context.MODE_PRIVATE)
 
+    private fun isPowerKilled(): Boolean = prefs().getBoolean("is_power_killed", false)
+
+    private fun setPowerKilled(killed: Boolean) {
+        prefs().edit().putBoolean("is_power_killed", killed).apply()
+    }
+
     private fun startVoiceSession(forceRestart: Boolean = false) {
         if (!isApiKeyConfigured()) {
             setOrbState(OrbState.IDLE)
@@ -1187,7 +1200,7 @@ class MainActivity : AppCompatActivity() {
         fun onOrbClicked() {
             runOnUiThread {
                 checkApiKeyAndExecute {
-                    if (isShutDown || voiceService?.isSessionRunning() != true) {
+                    if (isShutDown || isPowerKilled() || voiceService?.isSessionRunning() != true) {
                         restartJarvis()
                     } else {
                         toggleMute()
@@ -1216,7 +1229,7 @@ class MainActivity : AppCompatActivity() {
         fun onMicClicked() {
             runOnUiThread {
                 checkApiKeyAndExecute {
-                    if (isShutDown || voiceService?.isSessionRunning() != true) {
+                    if (isShutDown || isPowerKilled() || voiceService?.isSessionRunning() != true) {
                         restartJarvis()
                     } else {
                         toggleMute()
@@ -1229,7 +1242,7 @@ class MainActivity : AppCompatActivity() {
         fun onPowerClicked() {
             runOnUiThread {
                 checkApiKeyAndExecute {
-                    if (isShutDown || voiceService?.isSessionRunning() != true) {
+                    if (isShutDown || isPowerKilled() || voiceService?.isSessionRunning() != true) {
                         restartJarvis()
                     } else {
                         shutdownJarvis()
@@ -1332,18 +1345,19 @@ class MainActivity : AppCompatActivity() {
         val isMutedState = isMuted
         val hasApiKey = isApiKeyConfigured()
         val isRunning = voiceService?.isSessionRunning() == true
-        val isPoweredOn = !isShutDown && hasApiKey && isRunning
-        val labelToDisplay = if (!hasApiKey || isShutDown || !isRunning) "OFF" else if (isMutedState) "Muted" else stateText
+        val killed = isPowerKilled()
+        val isPoweredOn = !isShutDown && hasApiKey && isRunning && !killed
+        val labelToDisplay = if (!hasApiKey || isShutDown || !isRunning || killed) "OFF" else if (isMutedState) "Muted" else stateText
 
         val jsBar = "if (window.setBarState) window.setBarState('$labelToDisplay', '$themeColorHex', $isMutedState, $isPoweredOn);"
         standbyBarWebView.evaluateJavascript(jsBar, null)
 
         val jsOrb = "if (window.setOrbState) window.setOrbState('${state.name}', '$themeColorHex', $isMutedState, $isPoweredOn);"
         orbWebView.evaluateJavascript(jsOrb, null)
-        blazeRedWebView.evaluateJavascript("if (window.setOrbState) window.setOrbState('${state.name}');", null)
+        blazeRedWebView.evaluateJavascript("if (window.setOrbState) window.setOrbState('${if (isPoweredOn) state.name else "OFF"}', $isPoweredOn);", null)
 
         if (cyberHudLoaded) {
-            val cyberHudState = if (!hasApiKey || isShutDown || isMutedState) 0 else when (state) {
+            val cyberHudState = if (!hasApiKey || isShutDown || isMutedState || killed) 0 else when (state) {
                 OrbState.IDLE -> 0
                 OrbState.LISTENING, OrbState.ACTIVE -> 1
                 OrbState.THINKING -> 2
@@ -1469,18 +1483,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Long-press on the mic: fully shuts JARVIS down — disconnects the Gemini
-     * WebSocket, releases the mic (AudioEngine), and stops the foreground
-     * service entirely (JarvisVoiceService.stopSession() calls stopSelf()).
+     * Fully shuts down the active voice session, service binding, and background audio thread.
      * Distinct from a plain tap (toggleMute), which just mutes the mic while
      * keeping the session/service alive in the background.
      */
     private fun shutdownJarvis() {
-        if (isShutDown) return
+        setPowerKilled(true)
         isShutDown = true
         isMuted = true
 
         voiceService?.stopSession()
+        try {
+            stopService(Intent(this, JarvisVoiceService::class.java))
+        } catch (e: Exception) {}
         if (isBound) {
             voiceService?.removeListener(voiceListener)
             try {
@@ -1498,6 +1513,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Brings JARVIS back after a full shutdown: restarts the foreground service, rebinds, and starts a fresh session. */
     private fun restartJarvis() {
+        setPowerKilled(false)
         isShutDown = false
         isMuted = false
         setOrbState(OrbState.LISTENING)

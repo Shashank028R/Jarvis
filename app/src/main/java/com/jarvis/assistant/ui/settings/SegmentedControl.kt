@@ -74,18 +74,21 @@ class SegmentedControl @JvmOverloads constructor(
         labelsRow.removeAllViews()
         labelViews.clear()
 
+        val isDense = newOptions.size > 4
         for ((index, label) in newOptions.withIndex()) {
             val tv = TextView(context).apply {
                 text = label
                 gravity = Gravity.CENTER
-                textSize = 13f
+                textSize = if (isDense) 11f else 13f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
                 setTextColor(
                     ContextCompat.getColor(
                         context,
                         if (index == selectedIndex) R.color.text_on_accent else R.color.text_secondary
                     )
                 )
-                setPadding(dp(8), dp(10), dp(8), dp(10))
+                setPadding(dp(if (isDense) 2 else 8), dp(10), dp(if (isDense) 2 else 8), dp(10))
                 setOnClickListener { select(index, animate = true) }
             }
             labelViews.add(tv)

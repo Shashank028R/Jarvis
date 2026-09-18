@@ -89,7 +89,8 @@ class SettingsActivity : AppCompatActivity() {
         "JARVIS AI — Warm best friend tone, natural human flow with conversational speed. ⚡",
         "Warm, caring Hinglish companion with expressive replies. 💖",
         "Formal, precise English only. No emojis, straight to the point. 💼",
-        "Friendly Hinglish/English mix — balanced and helpful. 🤖"
+        "Friendly Hinglish/English mix — balanced and helpful. 🤖",
+        "JARVIS-V2 — Composed, calm, highly capable AI assistant with subtle wit & razor-sharp precision. 🧠"
     )
 
     private val homeStyleDescriptions = listOf(
@@ -298,10 +299,11 @@ class SettingsActivity : AppCompatActivity() {
             "gf" -> 1
             "professional" -> 2
             "assistant" -> 3
+            "jarvis_v2" -> 4
             else -> 0
         }
         selectedPersonalityIndex = personalityIndex
-        personalitySegmented.setOptions(listOf("JARVIS ⚡", "GF 💖", "Pro 💼", "Assist 🤖"), personalityIndex)
+        personalitySegmented.setOptions(listOf("JARVIS ⚡", "GF 💖", "Pro 💼", "Assist 🤖", "Jarvis-V2 🧠"), personalityIndex)
         personalityDescriptionText.text = personalityDescriptions[personalityIndex]
 
         val savedHomeStyle = p.getString("home_screen_style", "classic")
@@ -467,6 +469,7 @@ class SettingsActivity : AppCompatActivity() {
             1 -> "gf"
             2 -> "professional"
             3 -> "assistant"
+            4 -> "jarvis_v2"
             else -> "jarvis"
         }
 

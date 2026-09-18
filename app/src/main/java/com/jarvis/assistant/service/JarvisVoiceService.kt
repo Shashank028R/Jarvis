@@ -755,6 +755,13 @@ class JarvisVoiceService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
+        val isKilled = getSharedPreferences("jarvis_prefs", Context.MODE_PRIVATE).getBoolean("is_power_killed", false)
+        if (isKilled) {
+            Log.i("JarvisVoiceService", "Power is killed by user — stopping service onTaskRemoved without resurrecting")
+            stopSession()
+            stopSelf()
+            return
+        }
         Log.i("JarvisVoiceService", "App removed from recents — preserving JarvisVoiceService in background!")
         acquireWakeLock()
         ensureMicrophoneForegroundService()
@@ -778,6 +785,11 @@ class JarvisVoiceService : Service() {
     }
 
     fun ensureSessionActive() {
+        val isKilled = getSharedPreferences("jarvis_prefs", Context.MODE_PRIVATE).getBoolean("is_power_killed", false)
+        if (isKilled) {
+            Log.i("JarvisVoiceService", "Power is killed by user — skip ensureSessionActive")
+            return
+        }
         if (isSessionStarted && geminiLive?.isConnected() == true) return
         val apiKey = com.jarvis.assistant.util.EnvLoader.getApiKey(this).ifBlank {
             cachedApiKey
@@ -953,6 +965,13 @@ class JarvisVoiceService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val isKilled = getSharedPreferences("jarvis_prefs", Context.MODE_PRIVATE).getBoolean("is_power_killed", false)
+        if (isKilled) {
+            Log.i("JarvisVoiceService", "Power is killed by user — stopping service onStartCommand")
+            stopSession()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         acquireWakeLock()
         ensureMicrophoneForegroundService()
         ensureSessionActive()
@@ -2585,6 +2604,18 @@ class JarvisVoiceService : Service() {
 
     /** Fully tears down the voice session and stops the service (e.g. user quit JARVIS entirely). */
     fun stopSession() {
+        try {
+            val restartIntent = Intent(applicationContext, JarvisVoiceService::class.java)
+            val pendingIntent = PendingIntent.getService(
+                applicationContext, 1001, restartIntent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            )
+            if (pendingIntent != null) {
+                val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+                alarmManager?.cancel(pendingIntent)
+                pendingIntent.cancel()
+            }
+        } catch (_: Exception) {}
         resetTurnState()
         stopScreenShare()
         stopCameraVision()
